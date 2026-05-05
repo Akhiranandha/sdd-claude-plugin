@@ -1,6 +1,6 @@
 {
   "name": "sdd",
-  "version": "0.6.0",
+  "version": "1.0.0",
   "description": "Spec-Driven Development cycle for Claude Code: spec → tests → build → validate → ship, with iterative updates. Seven self-contained skills (one per phase). The ship phase dispatches commit-commands and code-review (from claude-plugins-official); all other phases are entirely self-contained.",
   "author": {
     "name": "kakhiranandha",
