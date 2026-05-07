@@ -1,0 +1,10 @@
+{
+  "name": "spec-flow",
+  "version": "1.0.0",
+  "description": "Spec-Driven Development cycle for Claude Code without automated tests: spec → build → validate → ship, with iterative updates. Six self-contained skills (one per phase, plus update and run helpers) plus a read-only /spec-flow:status command. Story-driven (US-N IDs), with optional Done-when checks per story for /spec-flow:validate. The ship phase dispatches commit-commands and code-review (from claude-plugins-official); all other phases are entirely self-contained.",
+  "author": {
+    "name": "Akhiranandha",
+    "email": "kodamakhira624@gmail.com"
+  },
+  "keywords": ["spec-driven-development", "sdd", "workflow", "orchestrator", "no-tests"]
+}
