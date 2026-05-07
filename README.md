@@ -17,7 +17,7 @@ A Claude Code plugin marketplace by [Akhiranandha](mailto:kodamakhira624@gmail.c
 Then install individual plugins:
 
 ```
-/plugin install spec-tests-first@sdd-marketplace
-/plugin install spec-lean@sdd-marketplace
-/plugin install review-code@sdd-marketplace
+/plugin install spec-tests-first@akhira-plugins
+/plugin install spec-lean@akhira-plugins
+/plugin install review-code@akhira-plugins
 ```
