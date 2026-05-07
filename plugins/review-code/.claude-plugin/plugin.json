@@ -1,0 +1,10 @@
+{
+  "name": "review-code",
+  "version": "1.0.0",
+  "description": "Two-pass code review for Claude Code: dispatches code-quality-reviewer (SonarQube-style maintainability) and security-reviewer (OWASP / CWE-mapped) in parallel, then code-reporter aggregates both into a single timestamped Markdown report under ./reports/. Read-only — never modifies code.",
+  "author": {
+    "name": "Akhiranandha",
+    "email": "kodamakhira624@gmail.com"
+  },
+  "keywords": ["code-review", "security", "quality", "owasp", "sonarqube", "report"]
+}
