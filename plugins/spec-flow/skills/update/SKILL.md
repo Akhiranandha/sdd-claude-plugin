@@ -1,10 +1,8 @@
 ---
-
 name: update
 description: Iteration handler for the SDD cycle. Use when the user invokes /spec-flow:update <feature> to amend an existing spec mid-cycle. Snapshots the current spec to spec.md.prev, lets the user revise interactively, diffs the two versions to identify changed US-N IDs, and marks affected stories as in-progress in spec-status.md so the next /spec-flow:build only redoes what changed.
 argument-hint: <feature-name>
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
-
 ---
 
 # /spec-flow:update — Iterate on an Existing Spec

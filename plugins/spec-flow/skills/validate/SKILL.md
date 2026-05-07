@@ -1,10 +1,8 @@
 ---
-
 name: validate
 description: Phase 3 of the SDD cycle. Use when the user invokes /spec-flow:validate <feature> to walk through each User Story's Done-when checks after implementation. Categorizes checks as automated (executes them) or manual (presents as a checklist), falls back to a manual y/n confirmation for stories with no Done-when block, aggregates done/blocked per story, and either unblocks the ship phase or loops back to build with failure notes appended to spec-status.md.
 argument-hint: <feature-name>
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
-
 ---
 
 # /spec-flow:validate — Phase 3: Validate Against the Spec

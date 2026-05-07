@@ -1,10 +1,8 @@
 ---
-
 name: ship
 description: Phase 4 of the SDD cycle. Use when the user invokes /spec-flow:ship <feature> to review, commit, push, PR, and merge. Performs an SDD-aware pre-commit code review of the local diff (BLOCK/CAUTION/GO verdict) — checking story deviations against US-N IDs in spec-status.md, runtime-artifact leaks, and the standard security / data-loss / concurrency issues. Only on GO does it dispatch commit-commands:commit (no remote) or commit-commands:commit-push-pr (with remote), then runs the marketplace /code-review on the PR diff as a second pass before asking for explicit merge permission.
 argument-hint: <feature-name>
 allowed-tools: Read, Write, Edit, Glob, Grep, Skill, Bash, AskUserQuestion
-
 ---
 
 # /spec-flow:ship — Phase 4: Review, Commit, PR, Merge

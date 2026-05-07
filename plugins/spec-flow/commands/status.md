@@ -1,10 +1,8 @@
 ---
-
 name: status
-description: Show SDD progress across all specs in the current project, or drill into one feature's per-story status. Reads docs/specs/\*/spec-status.md and renders a done/in-progress/blocked/not-started summary table. Read-only — never modifies files.
+description: Show SDD progress across all specs in the current project, or drill into one feature's per-story status. Reads docs/specs/*/spec-status.md and renders a done/in-progress/blocked/not-started summary table. Read-only — never modifies files.
 argument-hint: "[<feature>]"
 allowed-tools: Read, Glob, Bash
-
 ---
 
 # /spec-flow:status — SDD progress summary

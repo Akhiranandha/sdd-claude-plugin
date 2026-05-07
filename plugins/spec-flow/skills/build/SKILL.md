@@ -1,10 +1,8 @@
 ---
-
 name: build
 description: Phase 2 of the SDD cycle. Use when the user invokes /spec-flow:build <feature> to implement the spec at docs/specs/<feature>/spec.md story-by-story. Performs git pre-checks (offers git init if missing), scaffolds .gitignore for the language detected, implements bottom-up per User Story, writes per-feature artifacts to docs/specs/<feature>/spec-status.md, updates project-wide docs/codebase-map.md, and prompts a recommended-keep-branch rollback path on hard failure.
 argument-hint: <feature-name>
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
-
 ---
 
 # /spec-flow:build — Phase 2: Implement the Spec

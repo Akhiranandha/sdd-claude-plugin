@@ -1,10 +1,8 @@
 ---
-
 name: spec
 description: Phase 1 of the SDD cycle. Use when the user invokes /spec-flow:spec <feature> to interactively author a feature spec at docs/specs/<feature>/spec.md (amendments to an existing spec go through /spec-flow:update instead). Produces the SDD 6-section template (Goal, Requirements, User Stories with US-N IDs and optional Done-when checks, Technical details, Out of scope, Edge cases). Sub-capabilities of one feature go in one spec as separate US-IDs — never multiple specs. Pauses at a checkpoint so the user can review before implementation.
 argument-hint: <feature-name>
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
-
 ---
 
 # /spec-flow:spec — Phase 1: Write the Spec

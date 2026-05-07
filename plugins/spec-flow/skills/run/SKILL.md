@@ -1,10 +1,8 @@
 ---
-
 name: run
 description: Orchestrator for the full SDD cycle. Use when the user invokes /spec-flow:run <feature> to chain spec → build → validate → ship end-to-end. Pauses for explicit user confirmation between every phase (y / edit / stop). Resumable — detects existing artifacts (spec.md, spec-status.md) and offers to skip already-completed phases.
 argument-hint: <feature-name>
 allowed-tools: Read, Write, Edit, Glob, Grep, Skill, Bash, AskUserQuestion
-
 ---
 
 # /spec-flow:run — Full SDD Cycle Orchestrator
