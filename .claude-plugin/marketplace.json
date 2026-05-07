@@ -1,7 +1,7 @@
 {
   "name": "sdd-marketplace",
-  "owner": { "name": "kakhiranandha" },
+  "owner": { "name": "Akhiranandha", "email": "kodamakhira624@gmail.com" },
   "plugins": [
-    { "name": "sdd", "source": "./" }
+    { "name": "spec-tests-first", "source": "./plugins/spec-tests-first" }
   ]
 }

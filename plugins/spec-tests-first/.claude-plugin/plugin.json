@@ -1,10 +1,10 @@
 {
-  "name": "sdd",
+  "name": "spec-tests-first",
   "version": "1.0.0",
   "description": "Spec-Driven Development cycle for Claude Code: spec → tests → build → validate → ship, with iterative updates. Seven self-contained skills (one per phase). The ship phase dispatches commit-commands and code-review (from claude-plugins-official); all other phases are entirely self-contained.",
   "author": {
-    "name": "kakhiranandha",
-    "email": "kakhiranandha@virtusa.com"
+    "name": "Akhiranandha",
+    "email": "kodamakhira624@gmail.com"
   },
   "keywords": ["spec-driven-development", "sdd", "tdd", "workflow", "orchestrator"]
 }
