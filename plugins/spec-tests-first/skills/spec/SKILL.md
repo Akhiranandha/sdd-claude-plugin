@@ -1,6 +1,6 @@
 ---
 name: spec
-description: Phase 1 of the SDD cycle. Use when the user invokes /sdd:spec <feature> to interactively author or amend a feature spec at docs/specs/<feature>/spec.md. Produces the SDD 8-section template (Goal, Requirements, Acceptance Criteria with AC-N.M IDs, User stories, Technical details, Out of scope, Edge cases, Validation steps with VS-N IDs). Sub-capabilities of one feature go in one spec as separate AC-IDs — never multiple specs. Pauses at a checkpoint so the user can review before generating tests.
+description: Phase 1 of the SDD cycle. Use when the user invokes /sdd:spec <feature> to interactively author or amend a feature spec at docs/specs/<feature>/spec.md. On first invocation in a repo, detects monorepos and offers to configure multi-service (per-service test commands + layout profiles in CLAUDE.md). Produces the SDD 8-section template (Goal, Requirements, Acceptance Criteria with AC-N.M IDs, User stories, Technical details, Out of scope, Edge cases, Validation steps with VS-N IDs). For multi-service specs, AC clusters are grouped under per-service subsection headers. Sub-capabilities of one feature go in one spec as separate AC-IDs — never multiple specs. Pauses at a checkpoint so the user can review before /sdd:build begins per-AC red-green-refactor.
 argument-hint: <feature-name>
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 ---

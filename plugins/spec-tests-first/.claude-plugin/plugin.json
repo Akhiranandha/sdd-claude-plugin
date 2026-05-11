@@ -1,10 +1,10 @@
 {
   "name": "spec-tests-first",
-  "version": "1.0.0",
-  "description": "Spec-Driven Development cycle for Claude Code: spec → tests → build → validate → ship, with iterative updates. Seven self-contained skills (one per phase). The ship phase dispatches commit-commands and code-review (from claude-plugins-official); all other phases are entirely self-contained.",
+  "version": "2.0.0",
+  "description": "Spec-Driven Development cycle for Claude Code (v2): spec → build → review → fix → validate → ship. Six self-contained skills with per-AC red-green-refactor inside /sdd:build, an in-cycle code-review phase (code-quality + security in parallel), and an interactive fix phase with revert-on-regression. Stack-aware test-layout profiles (12 built-in plus a custom fallback) with monorepo support. Zero external plugin dependencies — inline git + gh in /sdd:ship.",
   "author": {
     "name": "Akhiranandha",
     "email": "kodamakhira624@gmail.com"
   },
-  "keywords": ["spec-driven-development", "sdd", "tdd", "workflow", "orchestrator"]
+  "keywords": ["spec-driven-development", "sdd", "tdd", "rgr", "red-green-refactor", "code-review", "monorepo", "workflow", "orchestrator"]
 }

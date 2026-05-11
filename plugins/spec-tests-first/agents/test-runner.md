@@ -1,6 +1,6 @@
 ---
 name: test-runner
-description: Runs the project's test command, parses the output, and returns a strict JSON summary keyed by AC-ID. Invoked by /sdd:build's baseline + fix loop and by /sdd:tests' pre-implementation baseline. Read-only — never writes files; the parent skill owns spec-status.md and any other writes.
+description: Runs the project's test command, parses the output, and returns a strict JSON summary keyed by AC-ID. Invoked by /sdd:build's per-AC red-green-refactor loop (RED, GREEN, REFACTOR, REGRESSION CHECK steps), /sdd:review's pre-flight green check, and /sdd:fix's per-fix regression check. Read-only — never writes files; the parent skill owns spec-status.md and any other writes.
 model: haiku
 tools: Bash
 ---
