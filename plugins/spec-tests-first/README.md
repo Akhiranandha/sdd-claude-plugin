@@ -1,4 +1,4 @@
-# spec-tests-first — Spec-Driven Development for Claude Code (v2)
+# spec-tests-first — Spec-Driven Development for Claude Code (v2.2)
 
 A Claude Code plugin that runs a Spec-Driven Development cycle in **six phases** (spec → build → review → fix → validate → ship), each a self-contained skill, plus `/sdd:init` (pre-cycle setup for existing repos), `/sdd:update` (iteration handler), `/sdd:run` (orchestrator), a read-only `/sdd:status` slash command, and a `/sdd:tests` deprecation shim. Four subagents power the cycle: `test-runner` (Haiku) for test execution and three reviewers (`code-quality-reviewer`, `security-reviewer`, `code-reporter`, all Sonnet) for the in-cycle code-review phase. The plugin is **fully self-contained** — zero external plugin dependencies.
 
