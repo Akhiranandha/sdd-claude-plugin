@@ -24,12 +24,20 @@ The whole reason we walk findings one-by-one (rather than batch-applying) is so 
    > Build is not complete for `$1`. Run `/sdd:build $1` first.
 
 2. **Resolve the report path.**
-   - If invoked with `--report <path>`, use that.
-   - Else read `spec-status.md`'s `Latest review:` line and use that path.
-   - Else glob `./reports/code-review_$1_*.md` (sorted by mtime descending) and pick the newest.
+
+   First parse `$1` for an optional `--report <path>` flag. The argument string from the user looks like one of:
+   - `<feature-name>` (no flag) — `$1` is just the feature name.
+   - `<feature-name> --report <path>` — strip ` --report <path>` from `$1` to get the feature name; capture `<path>` as the override report path.
+   - `--report <path> <feature-name>` (less common, support it anyway) — same idea, capture both pieces.
+
+   If `--report <path>` is present, use that path. The path may be absolute (`./reports/code-review_foo_2026-05-11_143000.md`) or relative to the working directory.
+
+   Otherwise, in this order:
+   - Read `docs/specs/<feature>/spec-status.md`'s `Latest review:` line and use that path.
+   - Else glob `./reports/code-review_<feature>_*.md` (sorted by mtime descending) and pick the newest.
    - If none of the three resolve → stop:
 
-     > No review report found for `$1`. Run `/sdd:review $1` first.
+     > No review report found for `<feature>`. Run `/sdd:review <feature>` first.
 
 3. **Working tree state.** Run `git status --porcelain`. If dirty, stash:
 
