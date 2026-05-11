@@ -231,13 +231,9 @@ Re-runs of `/sdd:fix` add more rows, never rewrite history.
 
 ## Step 6 — Critical gate + Phase 4 status update
 
-### 6a — Mark Phase 4 = `in-progress` when the walk starts
+**Phase 4 in-progress marker.** At the very beginning of Step 3 above (before the first finding is shown), Edit `docs/specs/$1/spec-status.md`'s Phase 4 row: Status = `in-progress`, Updated = today, Notes = `"walking <N> findings"`. (Yes, this is technically Step 3's responsibility — it's documented here for grouping with the Phase 4 status flow.)
 
-At the very beginning of Step 3 (before the first finding is shown), Edit `docs/specs/$1/spec-status.md`'s Phase 4 row: Status = `in-progress`, Updated = today, Notes = `"walking <N> findings"`.
-
-### 6b — Critical gate
-
-After the queue is exhausted (or user quit), evaluate:
+**Critical gate.** After the queue is exhausted (or user quit), evaluate:
 
 - Walk every finding in the report (re-parse to get fresh status values).
 - Count `Status: pending` and `Status: deferred` entries with `severity == Critical`.
