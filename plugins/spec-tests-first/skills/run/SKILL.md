@@ -11,7 +11,30 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Skill, Bash, AskUserQuestion
 
 You are running the full SDD cycle for feature **$1**. This is the orchestrator. You will run each phase, then **pause for explicit user confirmation** before the next. The user can intervene, edit, or stop at any checkpoint.
 
-The v2 cycle is **six phases**: spec → build → review → fix → validate → ship. The dedicated `/sdd:tests` phase from v1 was folded into `/sdd:build`'s per-AC red-green-refactor loop.
+The v2 cycle is **six phases**: spec → build → review → fix → validate → ship. An optional **Phase 0 (`/sdd:init`)** runs before spec for un-initialized repos. The dedicated `/sdd:tests` phase from v1 was folded into `/sdd:build`'s per-AC red-green-refactor loop.
+
+## Phase 0 — Init detection (optional, run before Phase 1)
+
+Check if the project has been initialized:
+
+- `CLAUDE.md` exists AND has a `## Test commands` section → considered initialized.
+- `docs/specs/$1/spec.md` exists (a v2-shaped feature spec) → considered initialized.
+- Either condition true → skip Phase 0, proceed to Phase 1 (resumability check).
+
+If **neither** condition is true, AskUserQuestion:
+
+> This project doesn't appear initialized for SDD:
+>   - CLAUDE.md ## Test commands: <yes / no>
+>   - docs/specs/$1/spec.md: <yes / no>
+>
+> Run /sdd:init first to set up the project?
+> - (a, recommended) Yes — run /sdd:init now, then continue with the cycle
+> - (b) Skip — /sdd:spec will detect what's missing and prompt
+> - (c) Cancel
+
+On (a): invoke the `init` skill from this plugin: `Skill(skill="init", args="$1")`. After it returns, proceed to Phase 1.
+On (b): proceed to Phase 1; the spec skill will handle any missing config.
+On (c): stop.
 
 ## Iron Law
 
