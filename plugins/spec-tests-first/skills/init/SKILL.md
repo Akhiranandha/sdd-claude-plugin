@@ -83,11 +83,11 @@ AskUserQuestion:
 > - (a, recommended) Yes — set up CLAUDE.md + empty codebase-map.md and exit cleanly
 > - (b) No — let me cancel and check what's missing
 
-### A.2 — Git pre-checks
+### A.2 — Git pre-checks (language-agnostic; differs from `/sdd:build`'s language-specific version)
 
-Same shape as `/sdd:build`'s pre-checks 2 and 3:
+In `/sdd:build`, the gitignore scaffold is language-specific because by build time the stack is known. In `/sdd:init` Case A there is no source yet, so the gitignore stays language-agnostic. The user (or a later `/sdd:spec`) refines it after the stack is chosen.
 
-- If not a git repo, offer `git init` (recommended), proceed without git, or cancel.
+- If not a git repo, AskUserQuestion: run `git init` (recommended) / proceed without git / cancel.
 - If no `.gitignore` at the project root, scaffold a minimal language-agnostic one:
 
 ```
