@@ -226,4 +226,104 @@ Save to `CLAUDE.md ## Test layout` using the same single-service / multi-service
 
 After both S.2 and S.3 finish for every service, the CLAUDE.md sections are complete. Subsequent steps (codebase-map seeding, spec migration) read these without re-prompting.
 
-<!-- Slices 5-10 append below this point -->
+## Shared step — Codebase-map seeding
+
+This section is invoked by Case B (Step B.2) and Case C (Step C.4). Reads `references/codebase-map-patterns.md` for each resolved profile, applies the globs, scaffolds `docs/codebase-map.md`.
+
+### M.1 — Pre-check: already exists?
+
+If `docs/codebase-map.md` already exists:
+
+- If it has rows: AskUserQuestion: append newly discovered files (recommended) / skip / abort init.
+- If it's empty (template only): proceed; overwrite the empty body.
+
+On append: skip files already present as rows; only add new ones.
+
+### M.2 — Read the patterns reference for the resolved profile(s)
+
+Use the Read tool on `plugins/spec-tests-first/skills/init/references/codebase-map-patterns.md`. Locate the section matching the profile name (e.g. `## profile: spring-boot-junit5`). Parse the three blocks:
+
+- **Include** patterns
+- **Exclude** patterns
+- **Role templates**
+
+For multi-service: repeat per service profile.
+
+### M.3 — Glob and filter
+
+For each Include pattern:
+
+- Use the Glob tool from the working directory (or from the service's subdirectory for multi-service — e.g. `frontend/src/**/*.tsx`).
+- Collect all matches.
+
+For each Exclude pattern:
+
+- Glob the same way, subtract from the Include set.
+
+### M.4 — Assign role strings
+
+For each remaining file path:
+
+- Test each Role template's pattern (in declared order). On first match, use that role string.
+- If a `<noun>` placeholder appears, try to derive it from the file name (e.g. `LoginController.java` → `<noun>` = "login"). If derivation isn't obvious, use the placeholder.
+- If no template matched, role = `<!-- TODO: describe role -->`.
+
+### M.5 — Build the codebase-map.md table
+
+For **single-service**, write a flat table:
+
+```markdown
+# codebase-map
+
+Project-wide map of source files and their roles. Updated by `/sdd:build` after each spec.
+
+## Source files
+
+| File | Role |
+|------|------|
+| `src/controllers/auth_controller.py` | REST controller for auth |
+| `src/services/auth_service.py` | <!-- TODO: describe role --> |
+
+## Key invariants
+
+<!-- TODO: add invariants -->
+```
+
+For **multi-service**, group by service:
+
+```markdown
+# codebase-map
+
+Project-wide map of source files and their roles. Updated by `/sdd:build` after each spec.
+
+## Server (service: backend)
+
+| File | Role |
+|------|------|
+| `backend/src/main/java/com/ex/auth/LoginController.java` | REST controller for login |
+
+## Client (service: frontend)
+
+| File | Role |
+|------|------|
+| `frontend/src/features/login/LoginForm.tsx` | <!-- TODO: describe role --> |
+
+## Key invariants
+
+<!-- TODO: add invariants -->
+```
+
+### M.6 — Print the summary
+
+After writing, print:
+
+```
+docs/codebase-map.md seeded:
+  Total files: <N>
+  By service (if multi-service):
+    backend: <X> files
+    frontend: <Y> files
+  TODO role descriptions: <K> (fill in before /sdd:spec / /sdd:build)
+```
+
+<!-- Slices 7-10 append below this point -->
