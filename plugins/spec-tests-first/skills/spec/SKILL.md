@@ -29,6 +29,42 @@ If — and only if — the user is describing multiple genuinely separate featur
 
 > You've described what sound like multiple features. Should I write **(a, recommended)** one spec per feature in its own `docs/specs/<feature>/` folder, implemented sequentially, or **(b)** one combined spec covering all of them?
 
+## Step 0 — Monorepo detection (on first `/sdd:spec` only)
+
+If `CLAUDE.md ## Test commands` already exists, skip this step — the multi-service decision was made on a prior invocation.
+
+Otherwise, scan for stack manifests in **subdirectories** of the current working directory (use Glob for each):
+
+- `package.json` — Node service
+- `pom.xml` / `build.gradle` / `build.gradle.kts` — JVM service
+- `Cargo.toml` — Rust service
+- `go.mod` — Go service
+- `pyproject.toml` / `setup.py` — Python service
+- `Gemfile` — Ruby service
+- `composer.json` — PHP service
+- `*.csproj` — .NET service
+
+A manifest at the **repo root** is single-service (or workspace manager) — not a monorepo signal. The monorepo signal is **two or more manifests in distinct subdirectories** (e.g. `frontend/package.json` and `backend/pom.xml`).
+
+If multiple service manifests are found, AskUserQuestion:
+
+> Detected monorepo with services:
+>   - **<name1>** (<stack1>) at `<subdir1>/`
+>   - **<name2>** (<stack2>) at `<subdir2>/`
+>
+> How should this spec target the services?
+> - **(a, recommended)** Configure multi-service — this feature may touch any subset; each gets its own profile + test command in CLAUDE.md
+> - **(b)** Single-service — pick one to use STF on; ignore the others
+> - **(c)** Cancel — I'll restructure first
+
+On (a): record the detected service names; the spec template below adds a `Services:` line and AC sections can carry service tags. Test commands and profiles get configured in `/sdd:build` on first run (one per service).
+
+On (b): record the chosen service name; the spec stays in single-service shape (no `Services:` line, flat AC list).
+
+On (c): stop.
+
+If only one (or zero) manifest is found in subdirectories, this is not a monorepo — proceed to Step 1 without prompting. Single-service flow.
+
 ## Step 1 — Orient
 
 Quick context gather, in this order. Stop when you have enough:
@@ -52,6 +88,18 @@ Skip questions only if the user's prompt + CLAUDE.md + existing specs cover ever
 ## Step 3 — Write the spec
 
 Use **exactly** this 8-section template, in this order. Save to `docs/specs/$1/spec.md`.
+
+**Multi-service note:** if Step 0 chose option (a), insert a `Services:` line directly under the H1 title (between the title and Section 1), listing the services this feature targets:
+
+```markdown
+# Spec: <feature>
+
+Services: backend, frontend
+
+## 1. Goal
+```
+
+For multi-service specs, Section 3 (Acceptance Criteria) groups ACs under `### <ServiceName> (service: <name>)` subsection headers; single-service specs keep a flat AC list (no `### ...` subsections). See the Section 3 example below.
 
 ```markdown
 # Spec: <feature>
@@ -79,6 +127,24 @@ For every error / rejection / failure path, **name the discriminating signal** t
 - **AC-2.1:** ...
 
 Group AC-IDs by capability. The major number is the capability cluster (1 = add, 2 = list, etc.); the minor number is the case (1 = happy path, 2 = error, 3 = edge).
+
+**Multi-service format** (only when the spec has a `Services:` line — see above): group AC clusters under per-service subsection headers so each AC inherits its service tag:
+
+```markdown
+## 3. Acceptance Criteria
+
+### Backend (service: backend)
+
+- **AC-1.1:** POST /api/login returns 200 with a JWT on valid credentials.
+- **AC-1.2:** POST /api/login returns 401 with body `{"error":"invalid credentials"}` on bad password.
+
+### Frontend (service: frontend)
+
+- **AC-2.1:** LoginForm submits credentials and stores the returned JWT in localStorage.
+- **AC-2.2:** On 401 response, LoginForm shows the inline error text "Invalid credentials".
+```
+
+`/sdd:build` reads each AC's enclosing subsection header to resolve its service, then uses that service's test command and layout profile from `CLAUDE.md`. ACs without a subsection header in a multi-service spec are an error — every AC must belong to exactly one service.
 
 ## 4. User stories
 
@@ -127,9 +193,9 @@ Print one short confirmation listing:
 Then output the checkpoint message exactly:
 
 > Spec written to `docs/specs/$1/spec.md`. Review it and tell me any changes you want.
-> When you're happy, run `/sdd:tests $1` to generate tests.
+> When you're happy, run `/sdd:build $1` — it will detect the test framework + layout profile, scaffold tests, and iterate ACs via per-AC red-green-refactor.
 
-DO NOT proceed to test generation in this skill — the user must explicitly trigger the next phase.
+DO NOT proceed to building in this skill — the user must explicitly trigger the next phase.
 
 ## Rules
 
