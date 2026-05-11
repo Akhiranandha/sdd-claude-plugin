@@ -563,4 +563,38 @@ On (b): rename them to `*.md.pre-init` (use `git mv` if tracked, else regular re
 
 Done.
 
-<!-- Slice 10 appends below this point -->
+## Idempotency rules
+
+`/sdd:init` must be safe to re-run:
+
+| Condition | Behavior |
+|---|---|
+| `docs/specs/<feature>/spec.md` already exists | Skip; print `Skipping <feature> — already migrated`. |
+| `docs/specs/<feature>/spec-status.md` already exists | Skip; preserve all status data (it may contain live tracking from /sdd:build). |
+| `docs/codebase-map.md` already exists with rows | AskUserQuestion: append new files / skip / abort. Never overwrite. |
+| `CLAUDE.md ## Test commands` already exists | Skip Step S.2's prompt; use existing config. |
+| `CLAUDE.md ## Test layout` already exists | Skip Step S.3's prompt; use existing config. |
+| US-N IDs already present in flat spec.md | Don't reassign; use as-is. |
+| Mixed state (some specs migrated, others flat) | Process only the still-flat ones; skip migrated. |
+| Project is already initialized (subdir specs + no flat specs) | Print status summary; stop without changes. |
+
+## Red Flags — STOP and reset
+
+| Thought | Reality |
+|---|---|
+| "I'll overwrite the existing spec-status.md to add the Phase progress block" | Never. It may contain live `/sdd:build` / `/sdd:fix` tracking. Skip the feature and move on; the user can add the Phase block manually if needed. |
+| "The flat spec doesn't have a User Stories section — I'll just write an empty Section 4" | If a flat file has no stories, it's likely a project-level doc, not a feature spec. Move it to `docs/<name>.md`. |
+| "I'll guess discriminating signals for error-path ACs" | Never. Use `TODO(needs discriminating signal — see /sdd:init warning at end)` and surface the TODO in C.6's final warnings. The user supplies the signal. |
+| "The user said cancel but I've already written half the migration — I'll keep what's done" | On cancel (D in C.5), revert ALL changes from this run. Use `git checkout -- docs/specs/` and delete created subdirectories. Restore the working tree. |
+| "I'll auto-delete the flat files after migration without asking" | Never. AskUserQuestion in C.6. Default to renaming to `*.md.pre-init` (safer). |
+| "Test files I find don't have AC-IDs — I'll skip the test signal" | If pre-init tests exist but lack AC-IDs (because they predate v2), count them as "test files present" but flag that they'll need renaming when /sdd:build iterates this feature. Don't drop the signal. |
+
+## Rules
+
+- **Always** confirm with the user before mutating anything outside the working directory's metadata (CLAUDE.md, .gitignore, new docs).
+- **Never** overwrite existing `spec.md`, `spec-status.md`, or non-empty `codebase-map.md` without explicit append/replace approval.
+- **Always** print the auto-detection result before running case-specific logic — user confirms the case before init proceeds.
+- **Always** preserve existing US-N IDs in flat specs; reassign only ones that lack them.
+- **Always** surface the TODO discriminating-signal list at the end of Case C — it's the most important thing the user must address before `/sdd:build` can iterate the migrated specs.
+- **Never** invoke `/sdd:build`, `/sdd:review`, `/sdd:fix`, `/sdd:validate`, or `/sdd:ship` from this skill. Init is preparatory; downstream phases are user-triggered.
+- **System binaries:** `git` is required; nothing else (this skill is fully self-contained).
