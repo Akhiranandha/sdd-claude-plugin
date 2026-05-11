@@ -5,20 +5,30 @@ A Claude Code plugin that runs a Spec-Driven Development cycle as **six self-con
 ## The cycle
 
 ```
-/sdd:spec     <feature> →  Phase 1: Write spec interactively (8-section template, monorepo-aware)
-/sdd:build    <feature> →  Phase 2: Per-AC red-green-refactor — resolve profile, scaffold, iterate ACs
-/sdd:review   <feature> →  Phase 3: code-quality + security reviewers in parallel → timestamped report
-/sdd:fix      <feature> →  Phase 4: Walk findings one-by-one, revert-on-regression, mutate report in place
-/sdd:validate <feature> →  Phase 5: Walk VS-N steps (auto + manual checklist)
-/sdd:ship     <feature> →  Phase 6: Inline commit/push/PR/merge — SDD-aware messages
+/sdd:init     <project>  →  Phase 0 (optional): Bring a repo into SDD — fresh / existing-codebase / migrate-flat-specs
+/sdd:spec     <feature>  →  Phase 1: Write spec interactively (8-section template, monorepo-aware, scope check, user-approval gate)
+/sdd:build    <feature>  →  Phase 2: Per-AC red-green-refactor — resolve profile, scaffold, iterate ACs
+/sdd:review   <feature>  →  Phase 3: code-quality + security reviewers in parallel → timestamped report
+/sdd:fix      <feature>  →  Phase 4: Walk findings one-by-one, revert-on-regression, mutate report in place
+/sdd:validate <feature>  →  Phase 5: Walk VS-N steps (auto + manual checklist)
+/sdd:ship     <feature>  →  Phase 6: Inline commit/push/PR/merge — SDD-aware messages
 
-/sdd:update   <feature> →  Iteration: amend spec; only changed ACs re-iterate via RGR in /sdd:build
-/sdd:run      <feature> →  Orchestrator: chains the 6 phases with explicit user confirmation between
+/sdd:update   <feature>  →  Iteration: amend spec; only changed ACs re-iterate via RGR in /sdd:build
+/sdd:run      <feature>  →  Orchestrator: chains the 6 phases (offers /sdd:init at start if needed)
 
-/sdd:status [<feature>] →  Read-only progress + findings rollup (aggregate or per-AC drill-down)
+/sdd:status [<feature>]  →  Read-only progress + findings rollup (aggregate or per-AC drill-down)
 ```
 
 `/sdd:status` is a slash command, not a skill — it never writes files, never invokes other phases, never proposes next actions. Use it to check progress at any point without disturbing the cycle. With no argument it scans every `docs/specs/*/spec-status.md` and prints one row per spec; with a feature name it drills into that spec and prints one row per AC-ID plus a Latest-review summary block.
+
+## What changed in v2.2 (over v2.1)
+
+- **New `/sdd:init` pre-cycle skill.** STF can now be adopted on existing repos, not just greenfield. Auto-detects three cases:
+  - **Case A** — fresh repo, fresh project. Near-no-op: scaffolds CLAUDE.md sections + empty codebase-map.md.
+  - **Case B** — existing codebase, no specs yet. Resolves test profile(s) per service for monorepos, seeds `docs/codebase-map.md` from source using per-profile glob patterns (12 built-in profiles + custom).
+  - **Case C** — existing repo with flat `docs/specs/*.md` files. Migrates into v2 subdirectory layout. Converts US-N IDs → AC-N.M (happy-path stories deterministic; error-path ACs flagged with `TODO(needs discriminating signal)` placeholders). Scaffolds per-feature `spec-status.md` with the v2.1 `## Phase progress` table. Runs a two-signal implementation scan (source files + test files) and proposes Phase 2 status per feature in a single batch confirmation.
+- **`/sdd:run` integration.** The orchestrator detects un-initialized projects and offers to run `/sdd:init` before Phase 1.
+- **Strict idempotency.** `/sdd:init` is safe to re-run; never overwrites existing specs, spec-status, or non-empty codebase-map files.
 
 ## What changed in v2.1 (over v2)
 
