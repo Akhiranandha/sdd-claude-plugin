@@ -4,6 +4,9 @@ temp2.txt
 *.tmp
 *.log
 
+# Claude Code session artifacts
+chat-session/
+
 # Local Claude Code settings (per-user)
 .claude/settings.local.json
 
