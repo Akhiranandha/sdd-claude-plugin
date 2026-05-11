@@ -1,4 +1,4 @@
-# spec-tests-first — Spec-Driven Development for Claude Code (v2.2)
+# spec-tests-first — Spec-Driven Development for Claude Code (v2.2.1)
 
 A Claude Code plugin that runs a Spec-Driven Development cycle in **six phases** (spec → build → review → fix → validate → ship), each a self-contained skill, plus `/sdd:init` (pre-cycle setup for existing repos), `/sdd:update` (iteration handler), `/sdd:run` (orchestrator), a read-only `/sdd:status` slash command, and a `/sdd:tests` deprecation shim. Four subagents power the cycle: `test-runner` (Haiku) for test execution and three reviewers (`code-quality-reviewer`, `security-reviewer`, `code-reporter`, all Sonnet) for the in-cycle code-review phase. The plugin is **fully self-contained** — zero external plugin dependencies.
 
@@ -20,6 +20,29 @@ A Claude Code plugin that runs a Spec-Driven Development cycle in **six phases**
 ```
 
 `/sdd:status` is a slash command, not a skill — it never writes files, never invokes other phases, never proposes next actions. Use it to check progress at any point without disturbing the cycle. With no argument it scans every `docs/specs/*/spec-status.md` and prints one row per spec; with a feature name it drills into that spec and prints one row per AC-ID plus a Latest-review summary block.
+
+## What changed in v2.2.1 (over v2.2)
+
+Documentation / wording patch — no behavioral changes. 13 audit findings addressed:
+
+- **Wording fixes:**
+  - `/sdd:ship` Phase 6 status update now explicitly says "after pre-checks, before Step 1" instead of the misleading "before doing anything else".
+  - `/sdd:fix` Step 6 sub-labels (`6a` / `6b`) flattened into parent prose for cleaner navigation.
+- **Backward-compat gap:**
+  - `/sdd:build` Step 5c now explicitly handles v1 `spec-status.md` files that lack a `## Phase progress` table — inserts the full 6-row table and backfills Phase 1 = done.
+- **`/sdd:run` polish:**
+  - Resumability table now includes an "Init" row so an already-initialized project doesn't trigger the Phase 0 prompt every time.
+- **`/sdd:fix` polish:**
+  - The `--report <path>` flag advertised in `argument-hint` now has explicit parsing instructions in Pre-check 2.
+- **README polish:**
+  - Opening blurb now accurately lists all 10 skills (was claiming "six").
+  - Title bumped to `(v2.2)` to match `plugin.json`.
+- **Agent descriptions:**
+  - `code-quality-reviewer`, `security-reviewer`, `code-reporter` each gain a one-line note that `/sdd:review` is the canonical entry point inside this plugin.
+- **`/sdd:init` polish:**
+  - Case A.2 gitignore inlined with explicit "language-agnostic vs `/sdd:build`'s language-specific" note (no more brittle cross-skill reference).
+- **`plugin.json` keywords:**
+  - Dropped redundant `migration` keyword (covered by `init`).
 
 ## What changed in v2.2 (over v2.1)
 
