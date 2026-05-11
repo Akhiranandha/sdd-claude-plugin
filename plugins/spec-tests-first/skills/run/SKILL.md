@@ -1,17 +1,17 @@
 ---
 name: run
-description: Orchestrator for the full SDD cycle. Use when the user invokes /sdd:run <feature> to chain spec → build → review → fix → validate → ship end-to-end. Pauses for explicit user confirmation between every phase (y / edit / skip / stop where applicable). Resumable — detects existing artifacts (spec.md, spec-status.md showing all ACs pass, review report, fix-log progress, validation block) and offers to skip already-completed phases.
+description: Orchestrator for the full SDD cycle. Use when the user invokes /spec-tests-first:run <feature> to chain spec → build → review → fix → validate → ship end-to-end. Pauses for explicit user confirmation between every phase (y / edit / skip / stop where applicable). Resumable — detects existing artifacts (spec.md, spec-status.md showing all ACs pass, review report, fix-log progress, validation block) and offers to skip already-completed phases.
 argument-hint: <feature-name>
 allowed-tools: Read, Write, Edit, Glob, Grep, Skill, Bash, AskUserQuestion
 ---
 
-# /sdd:run — Full SDD Cycle Orchestrator (6 phases)
+# /spec-tests-first:run — Full SDD Cycle Orchestrator (6 phases)
 
-**Announce at start:** Say to the user: "I'm using /sdd:run to chain the 6-phase cycle for `$1` (spec → build → review → fix → validate → ship), pausing for confirmation between every phase." Then proceed.
+**Announce at start:** Say to the user: "I'm using /spec-tests-first:run to chain the 6-phase cycle for `$1` (spec → build → review → fix → validate → ship), pausing for confirmation between every phase." Then proceed.
 
 You are running the full SDD cycle for feature **$1**. This is the orchestrator. You will run each phase, then **pause for explicit user confirmation** before the next. The user can intervene, edit, or stop at any checkpoint.
 
-The v2 cycle is **six phases**: spec → build → review → fix → validate → ship. An optional **Phase 0 (`/sdd:init`)** runs before spec for un-initialized repos. The dedicated `/sdd:tests` phase from v1 was folded into `/sdd:build`'s per-AC red-green-refactor loop.
+The v2 cycle is **six phases**: spec → build → review → fix → validate → ship. An optional **Phase 0 (`/spec-tests-first:init`)** runs before spec for un-initialized repos. The dedicated `/spec-tests-first:tests` phase from v1 was folded into `/spec-tests-first:build`'s per-AC red-green-refactor loop.
 
 ## Phase 0 — Init detection (optional, run before Phase 1)
 
@@ -27,9 +27,9 @@ If **neither** condition is true, AskUserQuestion:
 >   - CLAUDE.md ## Test commands: <yes / no>
 >   - docs/specs/$1/spec.md: <yes / no>
 >
-> Run /sdd:init first to set up the project?
-> - (a, recommended) Yes — run /sdd:init now, then continue with the cycle
-> - (b) Skip — /sdd:spec will detect what's missing and prompt
+> Run /spec-tests-first:init first to set up the project?
+> - (a, recommended) Yes — run /spec-tests-first:init now, then continue with the cycle
+> - (b) Skip — /spec-tests-first:spec will detect what's missing and prompt
 > - (c) Cancel
 
 On (a): invoke the `init` skill from this plugin: `Skill(skill="init", args="$1")`. After it returns, proceed to Phase 1.
@@ -40,7 +40,7 @@ On (c): stop.
 
 > **Never auto-advance. Every phase ends with an explicit AskUserQuestion checkpoint. The user can intervene, edit, or stop at every transition. Even on a clean cycle, the human is in the loop.**
 
-The whole reason `/sdd:run` exists is to give the user a single command for the cycle while preserving every phase's interrupt point. Auto-advancing destroys that contract.
+The whole reason `/spec-tests-first:run` exists is to give the user a single command for the cycle while preserving every phase's interrupt point. Auto-advancing destroys that contract.
 
 ## Resumability check (run before Phase 1)
 
@@ -48,6 +48,7 @@ Detect existing artifacts and offer to skip already-completed phases:
 
 | Artifact | Phase already done | Default action |
 |---|---|---|
+| `CLAUDE.md ## Test commands` exists AND `docs/codebase-map.md` exists | Init | Skip Phase 0 prompt — project already initialized |
 | `docs/specs/$1/spec.md` | Spec | Offer to skip |
 | `docs/specs/$1/spec-status.md` shows all ACs `pass` | Build | Offer to skip |
 | `./reports/code-review_$1_*.md` exists AND `spec-status.md` `Latest review:` matches | Review | Offer to skip (re-run optional) |
@@ -67,7 +68,7 @@ Invoke the `spec` skill: `Skill(skill="spec", args="$1")`. After it completes, A
 > - **(edit)** I'll revise `docs/specs/$1/spec.md` manually first
 > - **(stop)** End the cycle here
 
-On `edit` → tell user to revise the file, then re-run `/sdd:run $1`. Stop here.
+On `edit` → tell user to revise the file, then re-run `/spec-tests-first:run $1`. Stop here.
 On `stop` → end.
 On `y` → continue.
 
@@ -96,16 +97,16 @@ After it returns (and prints the report path + finding counts), AskUserQuestion:
 
 > Review complete. Continue?
 > - **(y)** Continue to fix (walk findings one-by-one)
-> - **(skip)** Jump straight to validate — proceed without fixing (you can `/sdd:fix` later)
+> - **(skip)** Jump straight to validate — proceed without fixing (you can `/spec-tests-first:fix` later)
 > - **(stop)** End the cycle here
 
-On `skip` → go directly to Phase 5 (Validate). The Critical gate in `/sdd:ship` will block if any Criticals are still pending; the user has been warned.
+On `skip` → go directly to Phase 5 (Validate). The Critical gate in `/spec-tests-first:ship` will block if any Criticals are still pending; the user has been warned.
 
 ### Phase 4 — Fix
 
 Invoke the `fix` skill: `Skill(skill="fix", args="$1")`. This walks findings severity-then-file, applies edits with revert-on-regression, atomic-commits each fix, and mutates the report in place.
 
-The `fix` skill ends with its own optional re-review prompt (Step 7 of /sdd:fix). If the user accepts, it dispatches `review` again, which may loop back into `fix` if new Criticals surface. Let the loop run; come back here when it exits.
+The `fix` skill ends with its own optional re-review prompt (Step 7 of /spec-tests-first:fix). If the user accepts, it dispatches `review` again, which may loop back into `fix` if new Criticals surface. Let the loop run; come back here when it exits.
 
 After it returns, AskUserQuestion:
 
@@ -145,6 +146,6 @@ If stopped before ship, list what's done and what's pending (the next phase to r
 ## Rules
 
 - **Never auto-advance.** Every phase ends with explicit user confirmation.
-- **Never skip the Critical gate.** Even if the user picks `skip` on Phase 3 (Review), `/sdd:ship`'s pre-check still enforces "no pending/deferred Critical findings". If they're outstanding at ship time, ship blocks.
-- **Resumability respects the user's intent.** If `/sdd:run` is re-invoked and finds existing artifacts, offer to skip — never silently re-run a completed phase.
-- **Never invoke the deprecated `/sdd:tests` shim** — test scaffolding is `/sdd:build`'s job.
+- **Never skip the Critical gate.** Even if the user picks `skip` on Phase 3 (Review), `/spec-tests-first:ship`'s pre-check still enforces "no pending/deferred Critical findings". If they're outstanding at ship time, ship blocks.
+- **Resumability respects the user's intent.** If `/spec-tests-first:run` is re-invoked and finds existing artifacts, offer to skip — never silently re-run a completed phase.
+- **Never invoke the deprecated `/spec-tests-first:tests` shim** — test scaffolding is `/spec-tests-first:build`'s job.

@@ -1,10 +1,10 @@
 {
   "name": "spec-tests-first",
-  "version": "2.2.0",
-  "description": "Spec-Driven Development cycle for Claude Code (v2.2): /sdd:init → spec → build → review → fix → validate → ship. New /sdd:init pre-cycle skill auto-detects three cases (fresh repo / existing codebase / migrate flat specs) so STF can be adopted on existing projects, not just greenfield. Plus everything from v2.1 — per-AC red-green-refactor, in-cycle code-review + fix phases, per-phase status tracking, user-approval gate, scope check, stack-aware test-layout profiles with monorepo support. Zero external plugin dependencies.",
+  "version": "2.2.1",
+  "description": "Spec-Driven Development cycle for Claude Code (v2.2.1): /spec-tests-first:init → spec → build → review → fix → validate → ship. v2.2.1 is a documentation/wording patch — 13 audit findings addressed (README skill count, /spec-tests-first:ship Phase 6 ordering wording, /spec-tests-first:run resumability for init, /spec-tests-first:fix sub-label cleanup, /spec-tests-first:build's v1 spec-status.md backward-compat insert in Step 5c, --report flag parsing, etc.). No behavioral changes from v2.2. New /spec-tests-first:init pre-cycle skill auto-detects three cases (fresh repo / existing codebase / migrate flat specs) so STF can be adopted on existing projects, not just greenfield. Per-AC red-green-refactor, in-cycle code-review + fix phases, per-phase status tracking, user-approval gate, scope check, stack-aware test-layout profiles with monorepo support. Zero external plugin dependencies.",
   "author": {
     "name": "Akhiranandha",
     "email": "kodamakhira624@gmail.com"
   },
-  "keywords": ["spec-driven-development", "sdd", "tdd", "rgr", "red-green-refactor", "code-review", "monorepo", "migration", "init", "workflow", "orchestrator"]
+  "keywords": ["spec-driven-development", "sdd", "tdd", "rgr", "red-green-refactor", "code-review", "monorepo", "init", "workflow", "orchestrator"]
 }

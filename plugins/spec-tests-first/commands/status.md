@@ -5,9 +5,9 @@ argument-hint: "[<feature>]"
 allowed-tools: Read, Glob, Bash
 ---
 
-# /sdd:status — SDD progress summary
+# /spec-tests-first:status — SDD progress summary
 
-You are running `/sdd:status` against the user's current project (NOT the plugin directory). Output: a single markdown table plus one summary line. This command is **read-only** — do not write files, do not run tests, do not propose next actions beyond the summary line.
+You are running `/spec-tests-first:status` against the user's current project (NOT the plugin directory). Output: a single markdown table plus one summary line. This command is **read-only** — do not write files, do not run tests, do not propose next actions beyond the summary line.
 
 ## Argument
 
@@ -25,8 +25,8 @@ Use Glob, relative to the user's current working directory:
 
 If the glob returns nothing:
 
-- Aggregate mode: print exactly `No specs found under docs/specs/. Run /sdd:spec <feature> to create one.` and stop.
-- Drill-down mode: print exactly `No spec-status.md for feature "$1". Either the feature doesn't exist or /sdd:build hasn't run yet.` and stop.
+- Aggregate mode: print exactly `No specs found under docs/specs/. Run /spec-tests-first:spec <feature> to create one.` and stop.
+- Drill-down mode: print exactly `No spec-status.md for feature "$1". Either the feature doesn't exist or /spec-tests-first:build hasn't run yet.` and stop.
 
 ## Step 2 — Parse each spec-status.md
 

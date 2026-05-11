@@ -1,52 +1,75 @@
-# spec-tests-first — Spec-Driven Development for Claude Code (v2)
+# spec-tests-first — Spec-Driven Development for Claude Code (v2.2.1)
 
-A Claude Code plugin that runs a Spec-Driven Development cycle as **six self-contained skills** (one per phase), plus a read-only `/sdd:status` slash command and two subagent groups: the `test-runner` (Haiku) for test execution, and three reviewers (`code-quality-reviewer`, `security-reviewer`, `code-reporter`) for the new in-cycle code-review phase. The plugin is **fully self-contained** — zero external plugin dependencies.
+A Claude Code plugin that runs a Spec-Driven Development cycle in **six phases** (spec → build → review → fix → validate → ship), each a self-contained skill, plus `/spec-tests-first:init` (pre-cycle setup for existing repos), `/spec-tests-first:update` (iteration handler), `/spec-tests-first:run` (orchestrator), a read-only `/spec-tests-first:status` slash command, and a `/spec-tests-first:tests` deprecation shim. Four subagents power the cycle: `test-runner` (Haiku) for test execution and three reviewers (`code-quality-reviewer`, `security-reviewer`, `code-reporter`, all Sonnet) for the in-cycle code-review phase. The plugin is **fully self-contained** — zero external plugin dependencies.
 
 ## The cycle
 
 ```
-/sdd:init     <project>  →  Phase 0 (optional): Bring a repo into SDD — fresh / existing-codebase / migrate-flat-specs
-/sdd:spec     <feature>  →  Phase 1: Write spec interactively (8-section template, monorepo-aware, scope check, user-approval gate)
-/sdd:build    <feature>  →  Phase 2: Per-AC red-green-refactor — resolve profile, scaffold, iterate ACs
-/sdd:review   <feature>  →  Phase 3: code-quality + security reviewers in parallel → timestamped report
-/sdd:fix      <feature>  →  Phase 4: Walk findings one-by-one, revert-on-regression, mutate report in place
-/sdd:validate <feature>  →  Phase 5: Walk VS-N steps (auto + manual checklist)
-/sdd:ship     <feature>  →  Phase 6: Inline commit/push/PR/merge — SDD-aware messages
+/spec-tests-first:init     <project>  →  Phase 0 (optional): Bring a repo into SDD — fresh / existing-codebase / migrate-flat-specs
+/spec-tests-first:spec     <feature>  →  Phase 1: Write spec interactively (8-section template, monorepo-aware, scope check, user-approval gate)
+/spec-tests-first:build    <feature>  →  Phase 2: Per-AC red-green-refactor — resolve profile, scaffold, iterate ACs
+/spec-tests-first:review   <feature>  →  Phase 3: code-quality + security reviewers in parallel → timestamped report
+/spec-tests-first:fix      <feature>  →  Phase 4: Walk findings one-by-one, revert-on-regression, mutate report in place
+/spec-tests-first:validate <feature>  →  Phase 5: Walk VS-N steps (auto + manual checklist)
+/spec-tests-first:ship     <feature>  →  Phase 6: Inline commit/push/PR/merge — SDD-aware messages
 
-/sdd:update   <feature>  →  Iteration: amend spec; only changed ACs re-iterate via RGR in /sdd:build
-/sdd:run      <feature>  →  Orchestrator: chains the 6 phases (offers /sdd:init at start if needed)
+/spec-tests-first:update   <feature>  →  Iteration: amend spec; only changed ACs re-iterate via RGR in /spec-tests-first:build
+/spec-tests-first:run      <feature>  →  Orchestrator: chains the 6 phases (offers /spec-tests-first:init at start if needed)
 
-/sdd:status [<feature>]  →  Read-only progress + findings rollup (aggregate or per-AC drill-down)
+/spec-tests-first:status [<feature>]  →  Read-only progress + findings rollup (aggregate or per-AC drill-down)
 ```
 
-`/sdd:status` is a slash command, not a skill — it never writes files, never invokes other phases, never proposes next actions. Use it to check progress at any point without disturbing the cycle. With no argument it scans every `docs/specs/*/spec-status.md` and prints one row per spec; with a feature name it drills into that spec and prints one row per AC-ID plus a Latest-review summary block.
+`/spec-tests-first:status` is a slash command, not a skill — it never writes files, never invokes other phases, never proposes next actions. Use it to check progress at any point without disturbing the cycle. With no argument it scans every `docs/specs/*/spec-status.md` and prints one row per spec; with a feature name it drills into that spec and prints one row per AC-ID plus a Latest-review summary block.
+
+## What changed in v2.2.1 (over v2.2)
+
+Documentation / wording patch — no behavioral changes. 13 audit findings addressed:
+
+- **Wording fixes:**
+  - `/spec-tests-first:ship` Phase 6 status update now explicitly says "after pre-checks, before Step 1" instead of the misleading "before doing anything else".
+  - `/spec-tests-first:fix` Step 6 sub-labels (`6a` / `6b`) flattened into parent prose for cleaner navigation.
+- **Backward-compat gap:**
+  - `/spec-tests-first:build` Step 5c now explicitly handles v1 `spec-status.md` files that lack a `## Phase progress` table — inserts the full 6-row table and backfills Phase 1 = done.
+- **`/spec-tests-first:run` polish:**
+  - Resumability table now includes an "Init" row so an already-initialized project doesn't trigger the Phase 0 prompt every time.
+- **`/spec-tests-first:fix` polish:**
+  - The `--report <path>` flag advertised in `argument-hint` now has explicit parsing instructions in Pre-check 2.
+- **README polish:**
+  - Opening blurb now accurately lists all 10 skills (was claiming "six").
+  - Title bumped to `(v2.2)` to match `plugin.json`.
+- **Agent descriptions:**
+  - `code-quality-reviewer`, `security-reviewer`, `code-reporter` each gain a one-line note that `/spec-tests-first:review` is the canonical entry point inside this plugin.
+- **`/spec-tests-first:init` polish:**
+  - Case A.2 gitignore inlined with explicit "language-agnostic vs `/spec-tests-first:build`'s language-specific" note (no more brittle cross-skill reference).
+- **`plugin.json` keywords:**
+  - Dropped redundant `migration` keyword (covered by `init`).
 
 ## What changed in v2.2 (over v2.1)
 
-- **New `/sdd:init` pre-cycle skill.** STF can now be adopted on existing repos, not just greenfield. Auto-detects three cases:
+- **New `/spec-tests-first:init` pre-cycle skill.** STF can now be adopted on existing repos, not just greenfield. Auto-detects three cases:
   - **Case A** — fresh repo, fresh project. Near-no-op: scaffolds CLAUDE.md sections + empty codebase-map.md.
   - **Case B** — existing codebase, no specs yet. Resolves test profile(s) per service for monorepos, seeds `docs/codebase-map.md` from source using per-profile glob patterns (12 built-in profiles + custom).
   - **Case C** — existing repo with flat `docs/specs/*.md` files. Migrates into v2 subdirectory layout. Converts US-N IDs → AC-N.M (happy-path stories deterministic; error-path ACs flagged with `TODO(needs discriminating signal)` placeholders). Scaffolds per-feature `spec-status.md` with the v2.1 `## Phase progress` table. Runs a two-signal implementation scan (source files + test files) and proposes Phase 2 status per feature in a single batch confirmation.
-- **`/sdd:run` integration.** The orchestrator detects un-initialized projects and offers to run `/sdd:init` before Phase 1.
-- **Strict idempotency.** `/sdd:init` is safe to re-run; never overwrites existing specs, spec-status, or non-empty codebase-map files.
+- **`/spec-tests-first:run` integration.** The orchestrator detects un-initialized projects and offers to run `/spec-tests-first:init` before Phase 1.
+- **Strict idempotency.** `/spec-tests-first:init` is safe to re-run; never overwrites existing specs, spec-status, or non-empty codebase-map files.
 
 ## What changed in v2.1 (over v2)
 
-- **Per-phase status tracking.** `spec-status.md` now has a `## Phase progress` table at the top — every phase skill updates its own row (`pending` → `in-progress` → `done` / `fail` / `blocked`). `/sdd:status` aggregate view shows current phase per spec at a glance.
-- **Explicit user-approval gate after `/sdd:spec`.** The spec phase ends with an AskUserQuestion — Approve / Edit / Cancel. Only on Approve does Phase 1 = `done`, and `/sdd:build` refuses to run against an unapproved spec.
-- **Scope check in `/sdd:spec` (Step 1.5).** Detects oversized requests (multiple independent features mashed into one) and prompts to split into separate sequential specs vs. combine. Prevention beats post-build refactor.
-- **Superpowers-style flow on every skill.** Announce-at-start lines, Iron Law callouts near the top, Red Flags + Common Rationalizations tables for the high-temptation skills (`/sdd:build`, `/sdd:fix`).
+- **Per-phase status tracking.** `spec-status.md` now has a `## Phase progress` table at the top — every phase skill updates its own row (`pending` → `in-progress` → `done` / `fail` / `blocked`). `/spec-tests-first:status` aggregate view shows current phase per spec at a glance.
+- **Explicit user-approval gate after `/spec-tests-first:spec`.** The spec phase ends with an AskUserQuestion — Approve / Edit / Cancel. Only on Approve does Phase 1 = `done`, and `/spec-tests-first:build` refuses to run against an unapproved spec.
+- **Scope check in `/spec-tests-first:spec` (Step 1.5).** Detects oversized requests (multiple independent features mashed into one) and prompts to split into separate sequential specs vs. combine. Prevention beats post-build refactor.
+- **Superpowers-style flow on every skill.** Announce-at-start lines, Iron Law callouts near the top, Red Flags + Common Rationalizations tables for the high-temptation skills (`/spec-tests-first:build`, `/spec-tests-first:fix`).
 
 ## What changed in v2 (over v1)
 
 | v1 | v2 |
 |---|---|
 | 5 phases: spec → tests → build → validate → ship | 6 phases: spec → build → review → fix → validate → ship |
-| `/sdd:tests` generated ALL tests upfront, then `/sdd:build` implemented | `/sdd:tests` is a deprecation shim; `/sdd:build` writes tests per-AC inside the red-green-refactor loop |
+| `/spec-tests-first:tests` generated ALL tests upfront, then `/spec-tests-first:build` implemented | `/spec-tests-first:tests` is a deprecation shim; `/spec-tests-first:build` writes tests per-AC inside the red-green-refactor loop |
 | Test-fix loop capped at 3 attempts across the whole feature | Cap = 3 attempts **per AC** (faster failure isolation) |
-| Inline pre-commit review hand-rolled inside `/sdd:ship` | Dedicated `/sdd:review` phase using the two reviewer agents |
-| PR-level review via external `code-review` plugin | Same reviewers run pre-commit in `/sdd:review`; no external plugin needed |
-| Commit/PR via external `commit-commands` plugin | Inlined in `/sdd:ship` with SDD-aware commit message + PR body |
+| Inline pre-commit review hand-rolled inside `/spec-tests-first:ship` | Dedicated `/spec-tests-first:review` phase using the two reviewer agents |
+| PR-level review via external `code-review` plugin | Same reviewers run pre-commit in `/spec-tests-first:review`; no external plugin needed |
+| Commit/PR via external `commit-commands` plugin | Inlined in `/spec-tests-first:ship` with SDD-aware commit message + PR body |
 | Python-flavored `tests/<feature>/` assumed | 12 built-in stack profiles + `custom` for unknown stacks; multi-service-aware |
 | External dependencies: `commit-commands` + `code-review` | **None** — fully self-contained |
 
@@ -55,12 +78,12 @@ A Claude Code plugin that runs a Spec-Driven Development cycle as **six self-con
 All specs live at `docs/specs/<feature>/spec.md` in the **target project** (not the plugin). Each spec folder accumulates:
 
 - `spec.md` — the spec itself (8 sections: Goal, Requirements, Acceptance Criteria with AC-IDs, User stories, Technical details, Out of scope, Edge cases / open questions, Validation steps with VS-IDs).
-- `spec.md.prev` — snapshot from the last `/sdd:update` (used for diff).
+- `spec.md.prev` — snapshot from the last `/spec-tests-first:update` (used for diff).
 - `spec-status.md` — live status per AC-ID (`pass` / `fail` / `blocked` / `stale` / `not-started` / `removed` / `in-progress`), plus a top-of-file `Latest review: <path>` pointer.
 
-The project has **one shared** `docs/codebase-map.md` — a project-wide table of source files with one-line role descriptions, append/merge-updated by `/sdd:build` after each spec.
+The project has **one shared** `docs/codebase-map.md` — a project-wide table of source files with one-line role descriptions, append/merge-updated by `/spec-tests-first:build` after each spec.
 
-Review reports are written to **`./reports/code-review_<feature>_<YYYY-MM-DD_HHMMSS>.md`** in the target project; `/sdd:fix` mutates the per-finding `Status:` field in place and appends a `## Fix log` table.
+Review reports are written to **`./reports/code-review_<feature>_<YYYY-MM-DD_HHMMSS>.md`** in the target project; `/spec-tests-first:fix` mutates the per-finding `Status:` field in place and appends a `## Fix log` table.
 
 ## Test commands + test layout (project convention — `CLAUDE.md`)
 
@@ -83,7 +106,7 @@ fixtures: tests/<feature>/conftest.py
 feature_anchor: directory
 ```
 
-`/sdd:build` reads both. If either section is missing, it auto-detects from project manifests (`pyproject.toml`, `package.json`, `pom.xml`, etc.), confirms with the user via AskUserQuestion, and writes the section. Subsequent phases read without re-prompting.
+`/spec-tests-first:build` reads both. If either section is missing, it auto-detects from project manifests (`pyproject.toml`, `package.json`, `pom.xml`, etc.), confirms with the user via AskUserQuestion, and writes the section. Subsequent phases read without re-prompting.
 
 ### Built-in test layout profiles
 
@@ -103,11 +126,11 @@ feature_anchor: directory
 | `phpunit` | `tests/<feature>/` | `<Cluster>Test.php` | directory |
 | `custom` | user-supplied | user-supplied | user-supplied |
 
-For unknown stacks, `/sdd:build` prompts the user inline for the four fields (`tests_root`, `files`, `fixtures`, `feature_anchor`) and saves as `profile: custom`. No plugin update needed.
+For unknown stacks, `/spec-tests-first:build` prompts the user inline for the four fields (`tests_root`, `files`, `fixtures`, `feature_anchor`) and saves as `profile: custom`. No plugin update needed.
 
 ## Monorepo support
 
-When `/sdd:spec` detects multiple stack manifests in subdirectories (e.g. `frontend/package.json` + `backend/pom.xml`), it asks whether to configure multi-service. On yes:
+When `/spec-tests-first:spec` detects multiple stack manifests in subdirectories (e.g. `frontend/package.json` + `backend/pom.xml`), it asks whether to configure multi-service. On yes:
 
 ```markdown
 ## Test commands
@@ -153,7 +176,7 @@ Services: backend, frontend
 - AC-2.2: On 401 response, LoginForm shows the inline error "Invalid credentials".
 ```
 
-`/sdd:build` reads each AC's enclosing subsection header, looks up that service's profile + test command, and writes the test in the right `tests_root`. Cross-service ACs run sequentially.
+`/spec-tests-first:build` reads each AC's enclosing subsection header, looks up that service's profile + test command, and writes the test in the right `tests_root`. Cross-service ACs run sequentially.
 
 Single-service repos omit the per-service subheadings — the format degrades to today's single-block layout. No breakage.
 
@@ -165,27 +188,27 @@ Single-service repos omit the per-service subheadings — the format degrades to
 
 ### System binaries
 
-- **`git`** — required by `/sdd:build` (stash, branch, end-of-build commit), `/sdd:fix` (per-fix atomic commits, revert-on-regression), and `/sdd:ship` (commit, push, remote detection).
-- **`gh`** (GitHub CLI), authenticated — required by `/sdd:ship` only when a remote is configured (push, PR, merge).
+- **`git`** — required by `/spec-tests-first:build` (stash, branch, end-of-build commit), `/spec-tests-first:fix` (per-fix atomic commits, revert-on-regression), and `/spec-tests-first:ship` (commit, push, remote detection).
+- **`gh`** (GitHub CLI), authenticated — required by `/spec-tests-first:ship` only when a remote is configured (push, PR, merge).
 - Project test runners — resolved from `CLAUDE.md ## Test commands` (single-service or multi-service). The plugin itself is language-agnostic.
 
 ## Subagents
 
-- **`test-runner`** (Haiku 4.5, Bash-only) — Runs the resolved test command, parses output, returns a strict JSON summary keyed by AC-ID (`passed` / `failed` / `errored` / `missing_ac_ids` / `exit_code` / `stdout_tail`). Invoked by `/sdd:build`'s RED, GREEN, REFACTOR, and REGRESSION-CHECK steps per AC, by `/sdd:review`'s pre-flight test check, and by `/sdd:fix`'s per-fix regression check. Read-only — never writes files; the parent skill owns `spec-status.md`. Users do not invoke it directly.
+- **`test-runner`** (Haiku 4.5, Bash-only) — Runs the resolved test command, parses output, returns a strict JSON summary keyed by AC-ID (`passed` / `failed` / `errored` / `missing_ac_ids` / `exit_code` / `stdout_tail`). Invoked by `/spec-tests-first:build`'s RED, GREEN, REFACTOR, and REGRESSION-CHECK steps per AC, by `/spec-tests-first:review`'s pre-flight test check, and by `/spec-tests-first:fix`'s per-fix regression check. Read-only — never writes files; the parent skill owns `spec-status.md`. Users do not invoke it directly.
 - **`code-quality-reviewer`** (Sonnet, Read+Grep+Glob+Bash) — SonarQube-style review across 10 dimensions (cyclomatic complexity, function/file length, duplication, naming, dead code, magic numbers, deep nesting, error handling, inconsistent patterns, test coverage gaps). Language-aware idiom checks. Runs `eslint` / `tsc` / `ruff` / `golangci-lint` / etc. in check-only mode if present. Read-only.
 - **`security-reviewer`** (Sonnet, Read+Grep+Glob+Bash) — OWASP Top 10 (2021) review (injection, XSS, CSRF, SSRF, XXE, path traversal, auth/authz, crypto, secrets, configuration, input handling). CWE + OWASP refs per finding. Runs `gitleaks`, `semgrep`, `bandit`, `npm audit`, `govulncheck`, `trivy`, etc. when present. Read-only.
-- **`code-reporter`** (Sonnet, Read+Write+Bash) — Aggregates the two reviewer outputs into one timestamped Markdown report under `./reports/`. Performs **no analysis of its own** — faithful aggregation only. Emits stable finding IDs (`SEC-NNN`, `QUA-NNN`) and initializes `Status: pending` per finding so `/sdd:fix` can mutate them in place. Only writes the report file; no other writes.
+- **`code-reporter`** (Sonnet, Read+Write+Bash) — Aggregates the two reviewer outputs into one timestamped Markdown report under `./reports/`. Performs **no analysis of its own** — faithful aggregation only. Emits stable finding IDs (`SEC-NNN`, `QUA-NNN`) and initializes `Status: pending` per finding so `/spec-tests-first:fix` can mutate them in place. Only writes the report file; no other writes.
 
 ## Key design decisions
 
-- **Per-AC red-green-refactor.** Tests are written one at a time inside `/sdd:build`. Every test is verified failing via `test-runner` before any production code is written (the Iron Law: no production code without a failing test first). Every fix is verified green before moving on. Then the full feature suite runs as a regression check — a passing AC test that breaks a prior AC reverts the implementation.
+- **Per-AC red-green-refactor.** Tests are written one at a time inside `/spec-tests-first:build`. Every test is verified failing via `test-runner` before any production code is written (the Iron Law: no production code without a failing test first). Every fix is verified green before moving on. Then the full feature suite runs as a regression check — a passing AC test that breaks a prior AC reverts the implementation.
 - **Cap = 3 attempts per AC, not feature-wide.** Each AC fails fast and gets individual attention. No silent retries past cap.
-- **Two-stage code review per feature.** `/sdd:review` runs the two reviewer agents in parallel, writes a report. `/sdd:fix` walks findings one-by-one with revert-on-regression and atomic commit per fix. The Critical gate (no `pending` or `deferred` Critical findings) is enforced at both `/sdd:fix` exit and `/sdd:ship` pre-check.
-- **Stable finding IDs.** The reporter emits `SEC-001`, `QUA-014`, etc. so `/sdd:fix` can address findings by ID across multiple sessions. `Status:` lines are parser-stable and mutated in place; the original report body stays verbatim.
-- **Atomic commits per successful fix.** Clean git history, cheap revert, easy audit. `/sdd:build` commits the whole feature once at the end; `/sdd:fix` adds incremental commits on top; `/sdd:ship` typically has nothing left to commit (only edits made after the last fix).
-- **Stack-aware test layout via profiles.** 12 built-in profiles cover ~95% of real-world stacks. Unknown stacks fall back to a `custom` profile saved to `CLAUDE.md`. Co-located profiles (Angular, Go) skip directory scaffolding; AC-ID embedding in test names makes `/sdd:update`'s "find tests for changed ACs" work for them via grep.
-- **Multi-service awareness.** Specs can target multiple services in a monorepo. Each AC carries a service tag (via subsection header). `/sdd:build` resolves per-AC service → profile + test command. `/sdd:review` and `/sdd:fix` see the cross-service diff naturally.
+- **Two-stage code review per feature.** `/spec-tests-first:review` runs the two reviewer agents in parallel, writes a report. `/spec-tests-first:fix` walks findings one-by-one with revert-on-regression and atomic commit per fix. The Critical gate (no `pending` or `deferred` Critical findings) is enforced at both `/spec-tests-first:fix` exit and `/spec-tests-first:ship` pre-check.
+- **Stable finding IDs.** The reporter emits `SEC-001`, `QUA-014`, etc. so `/spec-tests-first:fix` can address findings by ID across multiple sessions. `Status:` lines are parser-stable and mutated in place; the original report body stays verbatim.
+- **Atomic commits per successful fix.** Clean git history, cheap revert, easy audit. `/spec-tests-first:build` commits the whole feature once at the end; `/spec-tests-first:fix` adds incremental commits on top; `/spec-tests-first:ship` typically has nothing left to commit (only edits made after the last fix).
+- **Stack-aware test layout via profiles.** 12 built-in profiles cover ~95% of real-world stacks. Unknown stacks fall back to a `custom` profile saved to `CLAUDE.md`. Co-located profiles (Angular, Go) skip directory scaffolding; AC-ID embedding in test names makes `/spec-tests-first:update`'s "find tests for changed ACs" work for them via grep.
+- **Multi-service awareness.** Specs can target multiple services in a monorepo. Each AC carries a service tag (via subsection header). `/spec-tests-first:build` resolves per-AC service → profile + test command. `/spec-tests-first:review` and `/spec-tests-first:fix` see the cross-service diff naturally.
 - **Spec.md as the contract.** Section 3 ACs are binary and testable; every error-path AC names a discriminating signal (stderr substring, exception class, status code). Vague error contracts produce false-pass tests; the spec phase enforces this.
-- **`/sdd:run` is the orchestrator with explicit checkpoints between every phase.** Resumable — re-invoking detects existing artifacts (spec, status, review report, fix log, validation block) and offers to skip already-done phases.
-- **`/sdd:status` is read-only.** Never modifies files; never invokes other phases. Aggregate view gains a `Critical Outstanding` column in v2 so blocked specs surface at a glance.
-- **Backward compatible with v1 artifacts.** Existing `spec.md` and `spec-status.md` files keep working. The `Latest review:` field is added the first time `/sdd:review` runs. The `/sdd:tests` command stays valid as a deprecation shim that redirects users to `/sdd:build`.
+- **`/spec-tests-first:run` is the orchestrator with explicit checkpoints between every phase.** Resumable — re-invoking detects existing artifacts (spec, status, review report, fix log, validation block) and offers to skip already-done phases.
+- **`/spec-tests-first:status` is read-only.** Never modifies files; never invokes other phases. Aggregate view gains a `Critical Outstanding` column in v2 so blocked specs surface at a glance.
+- **Backward compatible with v1 artifacts.** Existing `spec.md` and `spec-status.md` files keep working. The `Latest review:` field is added the first time `/spec-tests-first:review` runs. The `/spec-tests-first:tests` command stays valid as a deprecation shim that redirects users to `/spec-tests-first:build`.

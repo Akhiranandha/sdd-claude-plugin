@@ -1,6 +1,6 @@
 # Codebase-map seeding patterns
 
-Per-profile glob patterns + role templates for `/sdd:init`'s codebase-map scaffolding step. The `init` skill reads the section matching the resolved profile from `CLAUDE.md ## Test layout` and applies the globs to discover files. Role descriptions are left as `<!-- TODO: describe role -->` placeholders for the developer to fill in.
+Per-profile glob patterns + role templates for `/spec-tests-first:init`'s codebase-map scaffolding step. The `init` skill reads the section matching the resolved profile from `CLAUDE.md ## Test layout` and applies the globs to discover files. Role descriptions are left as `<!-- TODO: describe role -->` placeholders for the developer to fill in.
 
 Each section has three blocks:
 

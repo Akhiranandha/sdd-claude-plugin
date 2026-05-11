@@ -1,13 +1,13 @@
 ---
 name: validate
-description: Phase 5 of the SDD cycle. Use when the user invokes /sdd:validate <feature> to walk through the spec's "Validation steps" section after implementation. Categorizes steps as automated (executes them) or manual (presents as a checklist), aggregates pass/fail, and either unblocks the ship phase or loops back to build with failure notes appended to spec-status.md.
+description: Phase 5 of the SDD cycle. Use when the user invokes /spec-tests-first:validate <feature> to walk through the spec's "Validation steps" section after implementation. Categorizes steps as automated (executes them) or manual (presents as a checklist), aggregates pass/fail, and either unblocks the ship phase or loops back to build with failure notes appended to spec-status.md.
 argument-hint: <feature-name>
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 ---
 
-# /sdd:validate — Phase 5: Validate Against the Spec
+# /spec-tests-first:validate — Phase 5: Validate Against the Spec
 
-**Announce at start:** Say to the user: "I'm using /sdd:validate to walk the spec's VS-N validation steps — automated ones I run via Bash, manual ones I'll ask you to confirm." Then proceed.
+**Announce at start:** Say to the user: "I'm using /spec-tests-first:validate to walk the spec's VS-N validation steps — automated ones I run via Bash, manual ones I'll ask you to confirm." Then proceed.
 
 You are running Phase 5 of the SDD cycle for feature **$1**.
 
@@ -21,7 +21,7 @@ Tests prove code correctness against a contract. Validation proves the contract 
 
 1. **Read the spec.** Open `docs/specs/$1/spec.md`. Extract the **Validation steps** section. If it is empty or missing, stop and tell the user:
 
-   > The spec has no validation steps. Add some to `docs/specs/$1/spec.md` (concrete steps to verify the feature works, each with a `VS-N` ID), then re-run `/sdd:validate $1`.
+   > The spec has no validation steps. Add some to `docs/specs/$1/spec.md` (concrete steps to verify the feature works, each with a `VS-N` ID), then re-run `/spec-tests-first:validate $1`.
 
 2. **Parse each step's `VS-N` ID.** Every step in the spec must carry a stable ID (e.g. `VS-1`, `VS-2`). If any step lacks an ID, stop and ask the user to add IDs first — failure logs reference these IDs, and renumbering on the fly makes failure history unreadable.
 
@@ -44,9 +44,9 @@ Tests prove code correctness against a contract. Validation proves the contract 
    - **All pass** → Edit Phase 5 row: Status = `done`, Notes = `"<N>/<N> VS pass"`. Output:
 
      > Validation complete — all checks pass.
-     > Run `/sdd:ship $1` to review, commit, and ship.
+     > Run `/spec-tests-first:ship $1` to review, commit, and ship.
 
    - **Any fail** → Edit Phase 5 row: Status = `fail`, Notes = `"<P>/<N> VS pass; failed: <list>"`. Append a `## Validation failures (YYYY-MM-DD)` section to `docs/specs/$1/spec-status.md` listing each failed `VS-ID` and the observed behaviour. Then output:
 
      > Validation failed: [list of VS-IDs]. Details appended to `docs/specs/$1/spec-status.md`.
-     > Fix and re-run `/sdd:build $1`. If requirements changed, run `/sdd:update $1` first.
+     > Fix and re-run `/spec-tests-first:build $1`. If requirements changed, run `/spec-tests-first:update $1` first.

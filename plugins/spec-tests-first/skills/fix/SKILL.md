@@ -1,13 +1,13 @@
 ---
 name: fix
-description: Phase 4 of the SDD cycle. Use when the user invokes /sdd:fix <feature> to walk through findings in the latest /sdd:review report. Reads ./reports/code-review_<feature>_*.md (resolved via spec-status.md's `Latest review:` pointer), iterates findings severity-then-file, asks the user (fix / custom / skip / defer / quit) per finding, applies the edit, dispatches test-runner to re-check the feature's tests, reverts that single edit if any AC regresses, mutates the report's `Status:` field in place, atomic-commits each successful fix, gates on Critical findings before allowing /sdd:validate, and (recommended) re-runs /sdd:review at the end. Resumable — re-invoking picks up at the first finding still marked `pending`.
+description: Phase 4 of the SDD cycle. Use when the user invokes /spec-tests-first:fix <feature> to walk through findings in the latest /spec-tests-first:review report. Reads ./reports/code-review_<feature>_*.md (resolved via spec-status.md's `Latest review:` pointer), iterates findings severity-then-file, asks the user (fix / custom / skip / defer / quit) per finding, applies the edit, dispatches test-runner to re-check the feature's tests, reverts that single edit if any AC regresses, mutates the report's `Status:` field in place, atomic-commits each successful fix, gates on Critical findings before allowing /spec-tests-first:validate, and (recommended) re-runs /spec-tests-first:review at the end. Resumable — re-invoking picks up at the first finding still marked `pending`.
 argument-hint: <feature-name> [--report <path>]
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion, Agent, Skill
 ---
 
-# /sdd:fix — Phase 4: Walk Findings, Fix or Defer
+# /spec-tests-first:fix — Phase 4: Walk Findings, Fix or Defer
 
-**Announce at start:** Say to the user: "I'm using /sdd:fix to walk findings from the latest review one-by-one, with revert-on-regression and atomic commits per successful fix. Critical findings must be addressed before /sdd:validate." Then proceed.
+**Announce at start:** Say to the user: "I'm using /spec-tests-first:fix to walk findings from the latest review one-by-one, with revert-on-regression and atomic commits per successful fix. Critical findings must be addressed before /spec-tests-first:validate." Then proceed.
 
 You are running Phase 4 of the SDD cycle for feature **$1**. Inputs: the latest review report + feature source on `feature/$1`. Outputs: applied edits + atomic commits per successful fix + mutated report file (per-finding `Status:` updated, `## Fix log` appended).
 
@@ -21,15 +21,23 @@ The whole reason we walk findings one-by-one (rather than batch-applying) is so 
 
 1. **Spec status complete?** Read `docs/specs/$1/spec-status.md`. Every AC must be `pass`. Otherwise stop:
 
-   > Build is not complete for `$1`. Run `/sdd:build $1` first.
+   > Build is not complete for `$1`. Run `/spec-tests-first:build $1` first.
 
 2. **Resolve the report path.**
-   - If invoked with `--report <path>`, use that.
-   - Else read `spec-status.md`'s `Latest review:` line and use that path.
-   - Else glob `./reports/code-review_$1_*.md` (sorted by mtime descending) and pick the newest.
+
+   First parse `$1` for an optional `--report <path>` flag. The argument string from the user looks like one of:
+   - `<feature-name>` (no flag) — `$1` is just the feature name.
+   - `<feature-name> --report <path>` — strip ` --report <path>` from `$1` to get the feature name; capture `<path>` as the override report path.
+   - `--report <path> <feature-name>` (less common, support it anyway) — same idea, capture both pieces.
+
+   If `--report <path>` is present, use that path. The path may be absolute (`./reports/code-review_foo_2026-05-11_143000.md`) or relative to the working directory.
+
+   Otherwise, in this order:
+   - Read `docs/specs/<feature>/spec-status.md`'s `Latest review:` line and use that path.
+   - Else glob `./reports/code-review_<feature>_*.md` (sorted by mtime descending) and pick the newest.
    - If none of the three resolve → stop:
 
-     > No review report found for `$1`. Run `/sdd:review $1` first.
+     > No review report found for `<feature>`. Run `/spec-tests-first:review <feature>` first.
 
 3. **Working tree state.** Run `git status --porcelain`. If dirty, stash:
 
@@ -39,7 +47,7 @@ The whole reason we walk findings one-by-one (rather than batch-applying) is so 
 
    Tell the user the stash was created. Fixes will land on the feature branch as atomic commits; the stash protects unrelated WIP.
 
-4. **Test command + path resolution.** Read `CLAUDE.md ## Test commands` + `## Test layout` (multi-service-aware — see `/sdd:build` Step 2/3 for parsing). Cache the resolved per-service command(s) and `tests_root`(s) for use in Step 4's regression check.
+4. **Test command + path resolution.** Read `CLAUDE.md ## Test commands` + `## Test layout` (multi-service-aware — see `/spec-tests-first:build` Step 2/3 for parsing). Cache the resolved per-service command(s) and `tests_root`(s) for use in Step 4's regression check.
 
 ## Step 1 — Parse the report
 
@@ -55,12 +63,12 @@ Read the report file fully. For each finding, extract these fields by parsing th
 | `suggested_fix` | the `Remediation:` body line |
 | `status` | the `Status: <value>` line at the end of the finding |
 
-Findings already marked `Status: fixed` or `Status: skipped` are **not re-prompted** in Step 3. Findings marked `Status: deferred` from a prior `/sdd:fix` run ARE re-prompted (they got past once with revert-on-regression or user opt; user gets another chance to act).
+Findings already marked `Status: fixed` or `Status: skipped` are **not re-prompted** in Step 3. Findings marked `Status: deferred` from a prior `/spec-tests-first:fix` run ARE re-prompted (they got past once with revert-on-regression or user opt; user gets another chance to act).
 
 If the report has zero findings (or zero `pending`/`deferred` findings), short-circuit:
 
 > All findings in `<report path>` are already addressed (or none exist). Nothing to fix.
-> Next: `/sdd:validate $1`.
+> Next: `/spec-tests-first:validate $1`.
 
 Stop.
 
@@ -98,7 +106,7 @@ Use AskUserQuestion:
 > - **(f) Fix** — apply the suggested fix; I'll run tests after and revert if any AC breaks
 > - **(c) Custom** — describe a different fix and I'll apply your version
 > - **(s) Skip** — mark fixed without editing (already addressed elsewhere, or false positive)
-> - **(d) Defer** — leave as pending, revisit later (next `/sdd:fix` run will re-prompt)
+> - **(d) Defer** — leave as pending, revisit later (next `/spec-tests-first:fix` run will re-prompt)
 > - **(q) Quit** — keep progress so far and stop the loop
 
 ### Critical-severity Skip is gated
@@ -214,7 +222,7 @@ new_string: |
 
 ### 5b — Append to `## Fix log`
 
-Append at the END of the report file. If `## Fix log` already exists (from a prior `/sdd:fix` run), append rows to its table. If not, append a fresh section:
+Append at the END of the report file. If `## Fix log` already exists (from a prior `/spec-tests-first:fix` run), append rows to its table. If not, append a fresh section:
 
 ```markdown
 
@@ -227,17 +235,13 @@ Append at the END of the report file. If `## Fix log` already exists (from a pri
 
 Use ISO-8601-ish timestamps (`date +"%Y-%m-%d %H:%M:%S"` or equivalent — Python / Node fallbacks per the reporter's pattern). Use the 7-char short SHA from `git rev-parse --short HEAD` after the atomic commit.
 
-Re-runs of `/sdd:fix` add more rows, never rewrite history.
+Re-runs of `/spec-tests-first:fix` add more rows, never rewrite history.
 
 ## Step 6 — Critical gate + Phase 4 status update
 
-### 6a — Mark Phase 4 = `in-progress` when the walk starts
+**Phase 4 in-progress marker.** At the very beginning of Step 3 above (before the first finding is shown), Edit `docs/specs/$1/spec-status.md`'s Phase 4 row: Status = `in-progress`, Updated = today, Notes = `"walking <N> findings"`. (Yes, this is technically Step 3's responsibility — it's documented here for grouping with the Phase 4 status flow.)
 
-At the very beginning of Step 3 (before the first finding is shown), Edit `docs/specs/$1/spec-status.md`'s Phase 4 row: Status = `in-progress`, Updated = today, Notes = `"walking <N> findings"`.
-
-### 6b — Critical gate
-
-After the queue is exhausted (or user quit), evaluate:
+**Critical gate.** After the queue is exhausted (or user quit), evaluate:
 
 - Walk every finding in the report (re-parse to get fresh status values).
 - Count `Status: pending` and `Status: deferred` entries with `severity == Critical`.
@@ -249,8 +253,8 @@ Critical findings unresolved for `$1`:
   - <id> [Critical] <file:line> — <title> — current status: <pending|deferred>
   - <id> [Critical] <file:line> — <title> — current status: <pending|deferred>
 
-Address them before /sdd:validate. Options:
-  (a) Re-run /sdd:fix $1 and walk only the deferred Criticals
+Address them before /spec-tests-first:validate. Options:
+  (a) Re-run /spec-tests-first:fix $1 and walk only the deferred Criticals
   (b) Override with explicit reason — I'll mark them skipped with your justification recorded
   (c) Stop here
 ```
@@ -259,13 +263,13 @@ AskUserQuestion. On (b): for each unresolved Critical, capture a justification l
 
 If all Criticals are `fixed` or `skipped` (with reasons), continue to Step 7.
 
-## Step 7 — Optional re-run of `/sdd:review` (recommended)
+## Step 7 — Optional re-run of `/spec-tests-first:review` (recommended)
 
 AskUserQuestion:
 
-> Re-run `/sdd:review $1` on the fixed code to confirm a clean state?
-> - **(a, recommended) Yes** — produce a fresh report; if clean, continue to `/sdd:validate`
-> - **(b) No** — trust the per-fix regression checks; continue to `/sdd:validate` now
+> Re-run `/spec-tests-first:review $1` on the fixed code to confirm a clean state?
+> - **(a, recommended) Yes** — produce a fresh report; if clean, continue to `/spec-tests-first:validate`
+> - **(b) No** — trust the per-fix regression checks; continue to `/spec-tests-first:validate` now
 > - **(c) Stop here** — I'll inspect the diff first
 
 On (a):
@@ -291,24 +295,24 @@ Fix complete for `$1`.
   Report: <report path>
   Findings: <fixed> fixed, <skipped> skipped, <deferred> deferred (0 critical outstanding)
 
-Next: /sdd:validate $1
+Next: /spec-tests-first:validate $1
 ```
 
 ## Edge cases
 
 | Case | Behavior |
 |---|---|
-| No report exists | Stop in pre-check 2. "Run `/sdd:review $1` first." |
+| No report exists | Stop in pre-check 2. "Run `/spec-tests-first:review $1` first." |
 | Multiple reports for the same feature | Always use the newest (from `Latest review:` or glob mtime). User can override via `--report <path>`. |
-| Suggested fix references code that has drifted | Edit will fail (`old_string` not unique / not found). Mark `Status: deferred`, note "code drifted; re-run `/sdd:review` for fresh context". |
+| Suggested fix references code that has drifted | Edit will fail (`old_string` not unique / not found). Mark `Status: deferred`, note "code drifted; re-run `/spec-tests-first:review` for fresh context". |
 | User quits in the middle | Report is already mutated for findings processed so far. Re-invoking picks up where left off. |
 | Atomic commit fails (e.g. pre-commit hook rejects) | Surface the hook output. Do NOT update the finding's `Status:` (the edit is on disk but uncommitted). User decides: fix the hook issue or revert the edit. |
 | `Latest review:` points at a path that no longer exists on disk | Fall back to glob. If no match, stop. |
-| Report mutates while `/sdd:fix` is running (concurrent edit) | Out of scope — single-user flow. Don't guard against this. |
+| Report mutates while `/spec-tests-first:fix` is running (concurrent edit) | Out of scope — single-user flow. Don't guard against this. |
 
 ## Resumability
 
-The report file is the single source of truth and is mutated in place. Calling `/sdd:fix $1` a second time picks up exactly where it left off — no state lives in memory between sessions. The `## Fix log` provides the audit trail across multiple sessions.
+The report file is the single source of truth and is mutated in place. Calling `/spec-tests-first:fix $1` a second time picks up exactly where it left off — no state lives in memory between sessions. The `## Fix log` provides the audit trail across multiple sessions.
 
 ## Red Flags — STOP and reset
 
@@ -318,7 +322,7 @@ The report file is the single source of truth and is mutated in place. Calling `
 | "I'll batch a few similar fixes, then test once" | One edit at a time. Batching destroys revert atomicity — if any AC fails, you can't tell which fix broke it. |
 | "The user said skip — I'll just mark it fixed" | `Skip` = "don't edit, mark as `skipped`". For Critical findings, `Skip` requires a one-line justification recorded in the report. No silent skips. |
 | "Critical gate is annoying — let me proceed to validate" | The Critical gate is the whole reason this phase exists. Override needs explicit user reason; no auto-bypass. |
-| "Re-running /sdd:review at the end is wasteful" | It's recommended for a reason — fixes can introduce new findings (extracted helper that's now dead, magic-number-replaced constant with a typo). The 30-60s cost is worth it. |
+| "Re-running /spec-tests-first:review at the end is wasteful" | It's recommended for a reason — fixes can introduce new findings (extracted helper that's now dead, magic-number-replaced constant with a typo). The 30-60s cost is worth it. |
 | "The fix touches multiple files — I'll commit the AC test edit separately" | Tests aren't part of the fix. If a fix needs to touch tests, the test is asserting on implementation details (not behavior) — flag it and ask the user. |
 
 ## Common Rationalizations
@@ -338,5 +342,5 @@ The report file is the single source of truth and is mutated in place. Calling `
 - **Always** mutate the report in place (per-finding `Status:` line) — no shadow copy, no "fix.md" derivative.
 - **Never** weaken or modify the AC tests to make a fix pass. Fix code, not tests.
 - **Never** auto-fix multiple findings in one shot. One at a time, with the user's explicit per-finding choice.
-- **Never** push to remote. That's `/sdd:ship`'s job.
+- **Never** push to remote. That's `/spec-tests-first:ship`'s job.
 - **Never** invent finding IDs, severities, or remediations. Everything in the work queue comes from the report.

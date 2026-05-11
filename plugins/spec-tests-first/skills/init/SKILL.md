@@ -1,19 +1,19 @@
 ---
 name: init
-description: Pre-cycle skill for spec-tests-first. Use when the user invokes /sdd:init to set up STF on a repository — auto-detects whether to run Case A (fresh repo, fresh project), Case B (existing codebase, no specs), or Case C (existing repo with flat specs requiring migration). Seeds CLAUDE.md (## Test commands + ## Test layout), scaffolds docs/codebase-map.md from existing source code using per-profile glob patterns, and for Case C migrates flat docs/specs/*.md files into the v2 subdirectory layout (US-N → AC-N.M conversion with TODO discriminating-signal flags for error-path ACs). Idempotent — re-running skips already-migrated artifacts.
+description: Pre-cycle skill for spec-tests-first. Use when the user invokes /spec-tests-first:init to set up STF on a repository — auto-detects whether to run Case A (fresh repo, fresh project), Case B (existing codebase, no specs), or Case C (existing repo with flat specs requiring migration). Seeds CLAUDE.md (## Test commands + ## Test layout), scaffolds docs/codebase-map.md from existing source code using per-profile glob patterns, and for Case C migrates flat docs/specs/*.md files into the v2 subdirectory layout (US-N → AC-N.M conversion with TODO discriminating-signal flags for error-path ACs). Idempotent — re-running skips already-migrated artifacts.
 argument-hint: <project-name>
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 ---
 
-# /sdd:init — Pre-cycle: Bring a Repo into SDD
+# /spec-tests-first:init — Pre-cycle: Bring a Repo into SDD
 
-**Announce at start:** Say to the user: "I'm using /sdd:init to scan `$1` and decide which of three init paths fits (fresh / existing-codebase / migrate-flat-specs), then run only what's needed." Then proceed.
+**Announce at start:** Say to the user: "I'm using /spec-tests-first:init to scan `$1` and decide which of three init paths fits (fresh / existing-codebase / migrate-flat-specs), then run only what's needed." Then proceed.
 
 You are running the pre-cycle initializer for project **$1**. Inputs: the working directory state. Outputs: CLAUDE.md config (test commands + test layout), seeded docs/codebase-map.md, and — only in the migration case — restructured docs/specs/<feature>/ subdirectories with per-feature spec-status.md.
 
 ## Iron Law
 
-> **Idempotent or nothing. Every action checks if the artifact already exists; if it does, skip with a printed reason. /sdd:init re-runs must be safe — never overwrite spec.md, spec-status.md, or completed CLAUDE.md sections.**
+> **Idempotent or nothing. Every action checks if the artifact already exists; if it does, skip with a printed reason. /spec-tests-first:init re-runs must be safe — never overwrite spec.md, spec-status.md, or completed CLAUDE.md sections.**
 
 The whole point of init is to bring an existing project into SDD without destroying anything. Overwriting a live spec-status.md (which may contain in-progress phase tracking) is the worst-case failure mode.
 
@@ -54,7 +54,7 @@ If subdirectory specs are present AND no flat specs, the project is **already in
 After detection, print:
 
 ```
-/sdd:init for project `<name>`.
+/spec-tests-first:init for project `<name>`.
 
 Scanning...
   Source manifests detected: <comma-separated list with their subdirectories>
@@ -83,11 +83,11 @@ AskUserQuestion:
 > - (a, recommended) Yes — set up CLAUDE.md + empty codebase-map.md and exit cleanly
 > - (b) No — let me cancel and check what's missing
 
-### A.2 — Git pre-checks
+### A.2 — Git pre-checks (language-agnostic; differs from `/spec-tests-first:build`'s language-specific version)
 
-Same shape as `/sdd:build`'s pre-checks 2 and 3:
+In `/spec-tests-first:build`, the gitignore scaffold is language-specific because by build time the stack is known. In `/spec-tests-first:init` Case A there is no source yet, so the gitignore stays language-agnostic. The user (or a later `/spec-tests-first:spec`) refines it after the stack is chosen.
 
-- If not a git repo, offer `git init` (recommended), proceed without git, or cancel.
+- If not a git repo, AskUserQuestion: run `git init` (recommended) / proceed without git / cancel.
 - If no `.gitignore` at the project root, scaffold a minimal language-agnostic one:
 
 ```
@@ -115,13 +115,13 @@ chat-session/
 
 AskUserQuestion:
 
-> Want to pick a test framework + layout profile now, or leave that for the first `/sdd:spec` to detect?
+> Want to pick a test framework + layout profile now, or leave that for the first `/spec-tests-first:spec` to detect?
 > - (a) Pick now — I'll save it to CLAUDE.md
-> - (b, recommended) Leave for later — /sdd:spec will detect on first invocation
+> - (b, recommended) Leave for later — /spec-tests-first:spec will detect on first invocation
 
-On (a): present the 12 built-in profiles + `custom`. Save to `CLAUDE.md ## Test commands` + `## Test layout` using the single-service or multi-service shape from `/sdd:build`'s Step 2/3.
+On (a): present the 12 built-in profiles + `custom`. Save to `CLAUDE.md ## Test commands` + `## Test layout` using the single-service or multi-service shape from `/spec-tests-first:build`'s Step 2/3.
 
-On (b): skip — `/sdd:spec` will handle this when invoked.
+On (b): skip — `/spec-tests-first:spec` will handle this when invoked.
 
 ### A.4 — Scaffold empty codebase-map.md
 
@@ -130,7 +130,7 @@ Write `docs/codebase-map.md` (only if it doesn't exist):
 ```markdown
 # codebase-map
 
-Project-wide map of source files and their roles. Updated by `/sdd:build` after each spec.
+Project-wide map of source files and their roles. Updated by `/spec-tests-first:build` after each spec.
 
 | File | Role |
 |------|------|
@@ -143,14 +143,14 @@ Project-wide map of source files and their roles. Updated by `/sdd:build` after 
 ### A.5 — Print next-step pointer
 
 ```
-/sdd:init complete — project `<name>` ready for SDD.
+/spec-tests-first:init complete — project `<name>` ready for SDD.
 
 What's set up:
   - .gitignore scaffolded (if missing)
   - CLAUDE.md ## Test commands + ## Test layout (if you picked A.3 option (a))
   - docs/codebase-map.md (empty, ready for first build)
 
-Next: /sdd:spec <feature> — write your first feature spec
+Next: /spec-tests-first:spec <feature> — write your first feature spec
 ```
 
 Stop. Skip downstream sections.
@@ -180,7 +180,7 @@ If TWO OR MORE distinct subdirectories contain manifests → monorepo signal. As
 >   - **<name1>** (<stack1>) at `<subdir1>/`
 >   - **<name2>** (<stack2>) at `<subdir2>/`
 >
-> How should /sdd:init configure CLAUDE.md?
+> How should /spec-tests-first:init configure CLAUDE.md?
 > - (a, recommended) Multi-service — per-service test commands + layout profiles
 > - (b) Single-service — pick one to configure; ignore the others
 > - (c) Cancel
@@ -214,11 +214,11 @@ AskUserQuestion (per service if multi-service):
 > - (b) Override — type a different command
 > - (c) Skip this service
 
-On (a)/(b): write to `CLAUDE.md ## Test commands`. Use the multi-service or single-service format from `/sdd:build`'s Step 2.
+On (a)/(b): write to `CLAUDE.md ## Test commands`. Use the multi-service or single-service format from `/spec-tests-first:build`'s Step 2.
 
 ### S.3 — Profile resolution per service
 
-Derive a candidate profile from the resolved command (use the table from `/sdd:build` Step 3 — `pytest → python-pytest`, `jest → js-jest`/`react-jest-rtl`, etc.).
+Derive a candidate profile from the resolved command (use the table from `/spec-tests-first:build` Step 3 — `pytest → python-pytest`, `jest → js-jest`/`react-jest-rtl`, etc.).
 
 If multiple candidates fit (e.g. `jest` could be plain or React), AskUserQuestion. If no candidate matches, ask for `custom` (4 fields: `tests_root`, `files`, `fixtures`, `feature_anchor`).
 
@@ -275,7 +275,7 @@ For **single-service**, write a flat table:
 ```markdown
 # codebase-map
 
-Project-wide map of source files and their roles. Updated by `/sdd:build` after each spec.
+Project-wide map of source files and their roles. Updated by `/spec-tests-first:build` after each spec.
 
 ## Source files
 
@@ -294,7 +294,7 @@ For **multi-service**, group by service:
 ```markdown
 # codebase-map
 
-Project-wide map of source files and their roles. Updated by `/sdd:build` after each spec.
+Project-wide map of source files and their roles. Updated by `/spec-tests-first:build` after each spec.
 
 ## Server (service: backend)
 
@@ -323,7 +323,7 @@ docs/codebase-map.md seeded:
   By service (if multi-service):
     backend: <X> files
     frontend: <Y> files
-  TODO role descriptions: <K> (fill in before /sdd:spec / /sdd:build)
+  TODO role descriptions: <K> (fill in before /spec-tests-first:spec / /spec-tests-first:build)
 ```
 
 ## Case B — Existing codebase, no specs yet
@@ -341,17 +341,17 @@ Run the **Shared step — Codebase-map seeding** above (Steps M.1 through M.6). 
 ### B.3 — Print next-step pointer
 
 ```
-/sdd:init complete — project `<name>` ready for SDD.
+/spec-tests-first:init complete — project `<name>` ready for SDD.
 
 What's set up:
   - CLAUDE.md ## Test commands ↓ <command(s)>
   - CLAUDE.md ## Test layout ↓ <profile(s)>
   - docs/codebase-map.md seeded with <N> files
-    → fill in <!-- TODO --> role descriptions before /sdd:spec
+    → fill in <!-- TODO --> role descriptions before /spec-tests-first:spec
 
 Existing source is untouched.
 
-Next: /sdd:spec <feature> — write your first feature spec against the existing baseline
+Next: /spec-tests-first:spec <feature> — write your first feature spec against the existing baseline
 ```
 
 Stop.
@@ -417,7 +417,7 @@ For each feature:
      - Feature-local AC number starts at 1, increments per story within the feature (this is the major number N — different from the global US-N counter).
      - Format: `**AC-N.1:** <action paraphrased> succeeds — <observable success state from the story's "so that <benefit>" clause OR a TODO placeholder>`.
    - For each error path hinted in Requirements / Out-of-scope / Edge cases ("validates email", "rejects bad password", "returns 404"), create error ACs:
-     - `**AC-N.2:** <invalid input> is rejected. TODO(needs discriminating signal — see /sdd:init warning at end).`
+     - `**AC-N.2:** <invalid input> is rejected. TODO(needs discriminating signal — see /spec-tests-first:init warning at end).`
    - Track every TODO created in a global `todos_found` list for the C.6 final warning.
 6. **Write `docs/specs/<feature>/spec.md`** with all sections in v2 order.
 
@@ -485,7 +485,7 @@ Detected implementation status for migrated features:
 > Choose:
 > - (a, recommended) Accept all proposed statuses
 > - (b) Override per feature — I'll walk you through each
-> - (c) Mark all as pending (conservative — you'll /sdd:build each to verify)
+> - (c) Mark all as pending (conservative — you'll /spec-tests-first:build each to verify)
 > - (d) Cancel migration (rollback all init changes)
 > - Optional: (e) Run tests for done-status features now (confirms test pass) — could be slow
 
@@ -509,7 +509,7 @@ Latest review: (none yet)
 
 | Phase           | Status      | Updated      | Notes                              |
 |-----------------|-------------|--------------|------------------------------------|
-| 1. spec         | done        | <YYYY-MM-DD> | migrated by /sdd:init              |
+| 1. spec         | done        | <YYYY-MM-DD> | migrated by /spec-tests-first:init              |
 | 2. build        | <X>         | <YYYY-MM-DD> | <"existing impl detected" / "—">   |
 | 3. review       | pending     | —            | —                                  |
 | 4. fix          | pending     | —            | —                                  |
@@ -533,13 +533,13 @@ Phase 2 Status comes from C.5's confirmation. Per-AC table:
 Print the consolidated warnings:
 
 ```
-/sdd:init migration complete for `<project>`.
+/spec-tests-first:init migration complete for `<project>`.
 
 Migrated features (<N>): <list>
 Project-level docs moved: <list>
 Codebase-map.md seeded with <K> files (fill in <!-- TODO --> role descriptions)
 
-⚠ <T> error-path ACs need discriminating signals before /sdd:build can RGR-iterate them:
+⚠ <T> error-path ACs need discriminating signals before /spec-tests-first:build can RGR-iterate them:
   - docs/specs/auth/spec.md: AC-1.2 — TODO(needs discriminating signal)
   - docs/specs/billing/spec.md: AC-2.3 — TODO(needs discriminating signal)
   ...
@@ -547,9 +547,9 @@ Codebase-map.md seeded with <K> files (fill in <!-- TODO --> role descriptions)
 Next steps (in order):
   1. Open the migrated spec files and fill in TODO discriminating signals (or remove error-path ACs if not applicable).
   2. Fill in <!-- TODO --> role descriptions in docs/codebase-map.md.
-  3. Run /sdd:status to confirm everything looks right.
-  4. For features marked Phase 2 = pending or stale: /sdd:build <feature> to implement / re-verify.
-  5. For features marked Phase 2 = done: /sdd:review <feature> to bring under SDD review.
+  3. Run /spec-tests-first:status to confirm everything looks right.
+  4. For features marked Phase 2 = pending or stale: /spec-tests-first:build <feature> to implement / re-verify.
+  5. For features marked Phase 2 = done: /spec-tests-first:review <feature> to bring under SDD review.
 ```
 
 Finally, AskUserQuestion:
@@ -565,12 +565,12 @@ Done.
 
 ## Idempotency rules
 
-`/sdd:init` must be safe to re-run:
+`/spec-tests-first:init` must be safe to re-run:
 
 | Condition | Behavior |
 |---|---|
 | `docs/specs/<feature>/spec.md` already exists | Skip; print `Skipping <feature> — already migrated`. |
-| `docs/specs/<feature>/spec-status.md` already exists | Skip; preserve all status data (it may contain live tracking from /sdd:build). |
+| `docs/specs/<feature>/spec-status.md` already exists | Skip; preserve all status data (it may contain live tracking from /spec-tests-first:build). |
 | `docs/codebase-map.md` already exists with rows | AskUserQuestion: append new files / skip / abort. Never overwrite. |
 | `CLAUDE.md ## Test commands` already exists | Skip Step S.2's prompt; use existing config. |
 | `CLAUDE.md ## Test layout` already exists | Skip Step S.3's prompt; use existing config. |
@@ -582,12 +582,12 @@ Done.
 
 | Thought | Reality |
 |---|---|
-| "I'll overwrite the existing spec-status.md to add the Phase progress block" | Never. It may contain live `/sdd:build` / `/sdd:fix` tracking. Skip the feature and move on; the user can add the Phase block manually if needed. |
+| "I'll overwrite the existing spec-status.md to add the Phase progress block" | Never. It may contain live `/spec-tests-first:build` / `/spec-tests-first:fix` tracking. Skip the feature and move on; the user can add the Phase block manually if needed. |
 | "The flat spec doesn't have a User Stories section — I'll just write an empty Section 4" | If a flat file has no stories, it's likely a project-level doc, not a feature spec. Move it to `docs/<name>.md`. |
-| "I'll guess discriminating signals for error-path ACs" | Never. Use `TODO(needs discriminating signal — see /sdd:init warning at end)` and surface the TODO in C.6's final warnings. The user supplies the signal. |
+| "I'll guess discriminating signals for error-path ACs" | Never. Use `TODO(needs discriminating signal — see /spec-tests-first:init warning at end)` and surface the TODO in C.6's final warnings. The user supplies the signal. |
 | "The user said cancel but I've already written half the migration — I'll keep what's done" | On cancel (D in C.5), revert ALL changes from this run. Use `git checkout -- docs/specs/` and delete created subdirectories. Restore the working tree. |
 | "I'll auto-delete the flat files after migration without asking" | Never. AskUserQuestion in C.6. Default to renaming to `*.md.pre-init` (safer). |
-| "Test files I find don't have AC-IDs — I'll skip the test signal" | If pre-init tests exist but lack AC-IDs (because they predate v2), count them as "test files present" but flag that they'll need renaming when /sdd:build iterates this feature. Don't drop the signal. |
+| "Test files I find don't have AC-IDs — I'll skip the test signal" | If pre-init tests exist but lack AC-IDs (because they predate v2), count them as "test files present" but flag that they'll need renaming when /spec-tests-first:build iterates this feature. Don't drop the signal. |
 
 ## Rules
 
@@ -595,6 +595,6 @@ Done.
 - **Never** overwrite existing `spec.md`, `spec-status.md`, or non-empty `codebase-map.md` without explicit append/replace approval.
 - **Always** print the auto-detection result before running case-specific logic — user confirms the case before init proceeds.
 - **Always** preserve existing US-N IDs in flat specs; reassign only ones that lack them.
-- **Always** surface the TODO discriminating-signal list at the end of Case C — it's the most important thing the user must address before `/sdd:build` can iterate the migrated specs.
-- **Never** invoke `/sdd:build`, `/sdd:review`, `/sdd:fix`, `/sdd:validate`, or `/sdd:ship` from this skill. Init is preparatory; downstream phases are user-triggered.
+- **Always** surface the TODO discriminating-signal list at the end of Case C — it's the most important thing the user must address before `/spec-tests-first:build` can iterate the migrated specs.
+- **Never** invoke `/spec-tests-first:build`, `/spec-tests-first:review`, `/spec-tests-first:fix`, `/spec-tests-first:validate`, or `/spec-tests-first:ship` from this skill. Init is preparatory; downstream phases are user-triggered.
 - **System binaries:** `git` is required; nothing else (this skill is fully self-contained).

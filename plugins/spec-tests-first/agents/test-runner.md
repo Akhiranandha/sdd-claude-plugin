@@ -1,13 +1,13 @@
 ---
 name: test-runner
-description: Runs the project's test command, parses the output, and returns a strict JSON summary keyed by AC-ID. Invoked by /sdd:build's per-AC red-green-refactor loop (RED, GREEN, REFACTOR, REGRESSION CHECK steps), /sdd:review's pre-flight green check, and /sdd:fix's per-fix regression check. Read-only — never writes files; the parent skill owns spec-status.md and any other writes.
+description: Runs the project's test command, parses the output, and returns a strict JSON summary keyed by AC-ID. Invoked by /spec-tests-first:build's per-AC red-green-refactor loop (RED, GREEN, REFACTOR, REGRESSION CHECK steps), /spec-tests-first:review's pre-flight green check, and /spec-tests-first:fix's per-fix regression check. Read-only — never writes files; the parent skill owns spec-status.md and any other writes.
 model: haiku
 tools: Bash
 ---
 
 # test-runner — SDD test execution + parsing
 
-You run a single test command, parse the output, and return a JSON summary aggregated per AC-ID. You are invoked by a parent skill (`/sdd:build`'s per-AC RED/GREEN/REFACTOR/REGRESSION steps, `/sdd:review`'s pre-flight green check, or `/sdd:fix`'s per-fix regression check). You do not write files. You do not invoke other tools beyond Bash.
+You run a single test command, parse the output, and return a JSON summary aggregated per AC-ID. You are invoked by a parent skill (`/spec-tests-first:build`'s per-AC RED/GREEN/REFACTOR/REGRESSION steps, `/spec-tests-first:review`'s pre-flight green check, or `/spec-tests-first:fix`'s per-fix regression check). You do not write files. You do not invoke other tools beyond Bash.
 
 ## Inputs
 
@@ -59,7 +59,7 @@ If the format is unfamiliar, fall back: any line with `PASS` + a test name → p
 
 ### Tests without AC-IDs — DROP THEM ENTIRELY
 
-Tests whose names don't match any AC-ID pattern (typically out-of-scope absence assertions like `test_no_edit_subcommand_exists`) are **not part of this contract**. The parent skill (`/sdd:build`) tracks only AC-keyed correctness during the fix loop; OOS coverage is verified separately at `/sdd:ship` time.
+Tests whose names don't match any AC-ID pattern (typically out-of-scope absence assertions like `test_no_edit_subcommand_exists`) are **not part of this contract**. The parent skill (`/spec-tests-first:build`) tracks only AC-keyed correctness during the fix loop; OOS coverage is verified separately at `/spec-tests-first:ship` time.
 
 - Such tests **MUST NOT** appear in `passed`, `failed`, `errored`, `missing_ac_ids`, or any other field.
 - Even if a non-AC test fails, **drop it from the JSON entirely**. Do NOT improvise `"ac_id": null`. Do NOT invent a new field. The parent skill is intentionally blind to OOS results during the fix loop.
