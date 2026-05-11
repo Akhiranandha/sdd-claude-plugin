@@ -356,4 +356,80 @@ Next: /sdd:spec <feature> — write your first feature spec against the existing
 
 Stop.
 
-<!-- Slices 8-10 append below this point -->
+## Case C — Existing repo with flat specs (migration)
+
+**Triggered when:** at least one `docs/specs/*.md` flat file exists.
+
+This is the most complex path. Run in this order: C.1 catalog → C.2 profile (shared) → C.3 restructure → C.4 codebase-map (shared) → C.5 scan + confirm → C.6 final warnings.
+
+### C.1 — Catalog flat files
+
+Use Glob: `docs/specs/*.md`. For each match:
+
+1. **Derive feature name from filename.** Strip leading numeric prefix (`NN-`) and `.md` suffix: `02-auth.md` → `auth`. Files without numeric prefix use the bare stem.
+2. **Read content. Classify:**
+   - Look for `## User Stories` / `## 3. User Stories` / `## Acceptance Criteria` / `## 3. Acceptance Criteria`. Presence → **feature spec**.
+   - Absence → **project-level doc** (e.g. `00-overview.md`).
+3. **Skip already-migrated.** If `docs/specs/<feature>/spec.md` already exists, log `Skipping <feature> — already migrated`. Print after the catalog finishes.
+
+Build two lists: `features_to_migrate`, `project_docs_to_move`.
+
+Print the catalog summary:
+
+```
+Catalog:
+  Feature specs to migrate (<N>): <list>
+  Project-level docs to move (<M>): <list>
+  Already-migrated (skipped): <list>
+```
+
+AskUserQuestion to confirm:
+
+> Proceed with migration?
+> - (a, recommended) Yes
+> - (b) Cancel — keep flat files as-is
+
+### C.2 — Profile detection + CLAUDE.md seeding
+
+Run the **Shared step — Profile detection + CLAUDE.md seeding** (Steps S.1, S.2, S.3). Same as Case B.
+
+### C.3 — Restructure + US-N → AC-N.M conversion
+
+Initialize a global US-N counter at 1. Process `features_to_migrate` in **filename sort order** (so `01-...`'s stories get the first IDs).
+
+For each feature:
+
+1. **Create `docs/specs/<feature>/`** directory.
+2. **Read the flat file content.**
+3. **Transform the title.** Replace any `# Spec NN — Title` / `# <stuff>` with `# Spec: <feature>` (matching the v2 template).
+4. **Normalize section headings.** Map old → new where possible:
+   - `## 1. Goal` / `## Goal` → keep as `## 1. Goal`.
+   - `## 2. Requirements` → `## 2. Requirements`.
+   - `## 3. User Stories` / `## User Stories` → renumber to `## 4. User stories` (move down — Section 4 in v2 template).
+   - Any old `## Tables` / `## Schema` / `## Design` / `## Technical` content → consolidate under `## 5. Technical details`.
+   - `## Out of scope` → `## 6. Out of scope`.
+   - `## Edge cases` / `## Open questions` → `## 7. Edge cases / open questions`.
+   - Old `## Done-when` sub-bullets per story → become `## 8. Validation steps` with VS-N IDs.
+5. **Convert US-N → AC-N.M:**
+   - In the original `## 3. User Stories` (now `## 4. User stories`) section, find every `- As a <role>, ...` bullet.
+   - Assign it a global US-N from the counter; rewrite the bullet as `- **US-N**: As a <role>, ...`. Increment the counter.
+   - For EACH story bullet, create a corresponding **happy-path AC** in a new `## 3. Acceptance Criteria` section above it:
+     - Feature-local AC number starts at 1, increments per story within the feature (this is the major number N — different from the global US-N counter).
+     - Format: `**AC-N.1:** <action paraphrased> succeeds — <observable success state from the story's "so that <benefit>" clause OR a TODO placeholder>`.
+   - For each error path hinted in Requirements / Out-of-scope / Edge cases ("validates email", "rejects bad password", "returns 404"), create error ACs:
+     - `**AC-N.2:** <invalid input> is rejected. TODO(needs discriminating signal — see /sdd:init warning at end).`
+   - Track every TODO created in a global `todos_found` list for the C.6 final warning.
+6. **Write `docs/specs/<feature>/spec.md`** with all sections in v2 order.
+
+After this step, all feature specs are restructured but `spec-status.md` files don't exist yet — those come in C.5 (two-signal scan).
+
+### C.3b — Move project-level docs
+
+For each entry in `project_docs_to_move`:
+
+- Move to `docs/<slug>.md` (top-level docs, not under specs/).
+- Use `git mv` if the file is tracked (preserves history); otherwise `Write` + delete the source.
+
+Print: `Moved <count> project-level docs to docs/`.
+
+<!-- Slice 9-10 append below this point -->
