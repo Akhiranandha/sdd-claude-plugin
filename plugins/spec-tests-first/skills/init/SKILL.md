@@ -432,4 +432,135 @@ For each entry in `project_docs_to_move`:
 
 Print: `Moved <count> project-level docs to docs/`.
 
-<!-- Slice 9-10 append below this point -->
+### C.4 — Codebase-map seeding
+
+Run the **Shared step — Codebase-map seeding** (Steps M.1 through M.6). Same as Case B.
+
+### C.5 — Two-signal implementation scan
+
+For each migrated feature, determine proposed Phase 2 status using two concrete signals.
+
+**Signal 1 — Source-file presence.**
+
+Read the feature's `spec.md` Section 5 (Technical details). Extract any file paths or class/module names mentioned (e.g. `LoginController.java`, `auth/login.js`, `UserService`). For each:
+
+- Glob the codebase-map seeded in C.4 for matching paths.
+- Count `present` vs `not present`.
+
+If Section 5 doesn't name any files → record `Section 5 silent — files unknown`.
+
+**Signal 2 — Test-file presence.**
+
+Per the resolved test layout profile:
+
+- `feature_anchor: directory` — Glob the `tests_root` substituted with this feature name (e.g. `tests/auth/**`). Count files.
+- `feature_anchor: co-located` — Grep across the codebase for test files (`*_test.go`, `*.spec.ts`, `*Test.java`) whose names contain any of this feature's US-N or AC-N.M IDs.
+
+Count test files found.
+
+**Build the proposed-status table:**
+
+```
+Detected implementation status for migrated features:
+
+| feature          | source files     | tests   | proposed Phase 2 status |
+|------------------|------------------|---------|--------------------------|
+| auth             | 3/3 present      | 2 files | done                     |
+| user-and-skills  | 5/5 present      | 4 files | done                     |
+| billing          | 1/3 present      | 0 files | pending (partial impl)   |
+| admin-dashboard  | 0/2 present      | 0 files | pending (not started)    |
+| frontend         | 8/8 present      | 0 files | done — tests TBD         |
+| reports          | Section 5 silent | 0 files | pending                  |
+```
+
+**Threshold rules:**
+
+- `source_files >= 50% present` AND `tests > 0` → **done**
+- `source_files >= 50% present` AND `tests == 0` → **done — tests TBD**
+- `source_files < 50% present` → **pending (partial impl)**
+- Section 5 silent / source files unknown → **pending**
+
+**AskUserQuestion (single batch confirmation):**
+
+> Choose:
+> - (a, recommended) Accept all proposed statuses
+> - (b) Override per feature — I'll walk you through each
+> - (c) Mark all as pending (conservative — you'll /sdd:build each to verify)
+> - (d) Cancel migration (rollback all init changes)
+> - Optional: (e) Run tests for done-status features now (confirms test pass) — could be slow
+
+On (a): apply proposed statuses; proceed to spec-status.md writing.
+On (b): for each feature, AskUserQuestion individually with current proposed status as default.
+On (c): override all to `pending`.
+On (d): delete all created subdirectory specs + restore flat files (use `git checkout -- docs/specs/` if tracked; else manual file deletion). Stop.
+On (e): for each proposed-`done` feature, dispatch the `test-runner` subagent with that feature's tests. If `failed`/`errored` are empty → keep `done`. If non-empty → downgrade to `stale` and note the failure count.
+
+### C.5b — Write per-feature spec-status.md
+
+After the confirmation, for each migrated feature, write `docs/specs/<feature>/spec-status.md`:
+
+```markdown
+# spec-status: <feature>
+
+Last updated: <YYYY-MM-DD>
+Latest review: (none yet)
+
+## Phase progress
+
+| Phase           | Status      | Updated      | Notes                              |
+|-----------------|-------------|--------------|------------------------------------|
+| 1. spec         | done        | <YYYY-MM-DD> | migrated by /sdd:init              |
+| 2. build        | <X>         | <YYYY-MM-DD> | <"existing impl detected" / "—">   |
+| 3. review       | pending     | —            | —                                  |
+| 4. fix          | pending     | —            | —                                  |
+| 5. validate     | pending     | —            | —                                  |
+| 6. ship         | pending     | —            | —                                  |
+
+## Status per Acceptance Criterion
+
+| AC-ID | Status | Notes |
+|---|---|---|
+```
+
+Phase 2 Status comes from C.5's confirmation. Per-AC table:
+
+- If Phase 2 = `done` → all ACs = `done`.
+- If Phase 2 = `pending` → all ACs = `not-started`.
+- If Phase 2 = `stale` (from (e) option) → all ACs = `stale`.
+
+### C.6 — Final warnings + next-step pointer
+
+Print the consolidated warnings:
+
+```
+/sdd:init migration complete for `<project>`.
+
+Migrated features (<N>): <list>
+Project-level docs moved: <list>
+Codebase-map.md seeded with <K> files (fill in <!-- TODO --> role descriptions)
+
+⚠ <T> error-path ACs need discriminating signals before /sdd:build can RGR-iterate them:
+  - docs/specs/auth/spec.md: AC-1.2 — TODO(needs discriminating signal)
+  - docs/specs/billing/spec.md: AC-2.3 — TODO(needs discriminating signal)
+  ...
+
+Next steps (in order):
+  1. Open the migrated spec files and fill in TODO discriminating signals (or remove error-path ACs if not applicable).
+  2. Fill in <!-- TODO --> role descriptions in docs/codebase-map.md.
+  3. Run /sdd:status to confirm everything looks right.
+  4. For features marked Phase 2 = pending or stale: /sdd:build <feature> to implement / re-verify.
+  5. For features marked Phase 2 = done: /sdd:review <feature> to bring under SDD review.
+```
+
+Finally, AskUserQuestion:
+
+> Migration verified. Delete the original flat spec files at `docs/specs/*.md`?
+> - (a) Yes — they're superseded by the subdirectory specs
+> - (b, recommended) No — keep them as `*.md.pre-init` for safety; I'll delete them when satisfied
+
+On (a): delete the flat files.
+On (b): rename them to `*.md.pre-init` (use `git mv` if tracked, else regular rename).
+
+Done.
+
+<!-- Slice 10 appends below this point -->
