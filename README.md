@@ -11,7 +11,7 @@ A Claude Code plugin marketplace by [Akhiranandha](mailto:kodamakhira624@gmail.c
 ## Adding this marketplace
 
 ```
-/plugin marketplace add <repo-url>
+/plugin marketplace add Akhiranandha/custom-claude-plugins
 ```
 
 Then install individual plugins:
