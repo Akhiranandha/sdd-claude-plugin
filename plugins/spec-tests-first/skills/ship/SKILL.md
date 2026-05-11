@@ -58,11 +58,12 @@ This is the last gate before code goes anywhere outside the developer's machine.
 
 ## Phase 6 status update
 
-Before doing anything else, Edit `docs/specs/$1/spec-status.md`'s Phase 6 row: Status = `in-progress`, Updated = today, Notes = `"shipping"`. This lets `/sdd:status` show the in-flight state if the ship flow pauses for user input.
+**After all Pre-checks above pass and before Step 1**, Edit `docs/specs/$1/spec-status.md`'s Phase 6 row: Status = `in-progress`, Updated = today, Notes = `"shipping"`. This lets `/sdd:status` show the in-flight state if the ship flow pauses for user input.
+
+If any Pre-check failed and ship has already aborted, this section never runs — the Phase 6 row stays `pending` so the user knows ship hasn't started.
 
 After a successful merge (or after a local-only commit when there's no remote), update Phase 6 row again: Status = `done`, Notes = `"merged: <PR url>"` (or `"local commit: <short SHA>"` for local-only). If the user leaves the PR open (chose option (e)), set Status = `in-progress`, Notes = `"PR open: <url>"`.
 
-If ship aborts due to a pre-check failure (Critical findings outstanding, no validation, etc.), do NOT modify the Phase 6 row — leave it `pending` so the user knows ship hasn't run yet.
 
 ## Step 1 — Stage and gather SDD-aware metadata
 
