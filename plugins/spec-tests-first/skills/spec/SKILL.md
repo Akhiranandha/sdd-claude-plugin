@@ -1,27 +1,27 @@
 ---
 name: spec
-description: Phase 1 of the SDD cycle. Use when the user invokes /sdd:spec <feature> to interactively author or amend a feature spec at docs/specs/<feature>/spec.md. On first invocation in a repo, detects monorepos and offers to configure multi-service (per-service test commands + layout profiles in CLAUDE.md). Produces the SDD 8-section template (Goal, Requirements, Acceptance Criteria with AC-N.M IDs, User stories, Technical details, Out of scope, Edge cases, Validation steps with VS-N IDs). For multi-service specs, AC clusters are grouped under per-service subsection headers. Sub-capabilities of one feature go in one spec as separate AC-IDs — never multiple specs. Pauses at a checkpoint so the user can review before /sdd:build begins per-AC red-green-refactor.
+description: Phase 1 of the SDD cycle. Use when the user invokes /spec-tests-first:spec <feature> to interactively author or amend a feature spec at docs/specs/<feature>/spec.md. On first invocation in a repo, detects monorepos and offers to configure multi-service (per-service test commands + layout profiles in CLAUDE.md). Produces the SDD 8-section template (Goal, Requirements, Acceptance Criteria with AC-N.M IDs, User stories, Technical details, Out of scope, Edge cases, Validation steps with VS-N IDs). For multi-service specs, AC clusters are grouped under per-service subsection headers. Sub-capabilities of one feature go in one spec as separate AC-IDs — never multiple specs. Pauses at a checkpoint so the user can review before /spec-tests-first:build begins per-AC red-green-refactor.
 argument-hint: <feature-name>
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 ---
 
-# /sdd:spec — Phase 1: Write the Spec
+# /spec-tests-first:spec — Phase 1: Write the Spec
 
-**Announce at start:** Say to the user: "I'm using /sdd:spec to author `$1` interactively (8-section template, monorepo + scope check + explicit user approval at the end)." Then proceed.
+**Announce at start:** Say to the user: "I'm using /spec-tests-first:spec to author `$1` interactively (8-section template, monorepo + scope check + explicit user approval at the end)." Then proceed.
 
 You are running Phase 1 of the SDD cycle for feature **$1**. Output: `docs/specs/$1/spec.md` + a `## Phase progress` block in `docs/specs/$1/spec-status.md` with Phase 1 marked `done` only after the user explicitly approves.
 
 ## Iron Law
 
-> **Don't mark Phase 1 = `done` until the user picks `(a) Approve` at the Step 4 gate. A spec the user hasn't read is a spec waiting to fail in `/sdd:build`.**
+> **Don't mark Phase 1 = `done` until the user picks `(a) Approve` at the Step 4 gate. A spec the user hasn't read is a spec waiting to fail in `/spec-tests-first:build`.**
 
-`/sdd:build`'s pre-check 1 enforces this — it won't run against a spec whose Phase 1 status isn't `done`. So skipping the gate here just produces a confusing "spec exists but build refuses to start" error downstream.
+`/spec-tests-first:build`'s pre-check 1 enforces this — it won't run against a spec whose Phase 1 status isn't `done`. So skipping the gate here just produces a confusing "spec exists but build refuses to start" error downstream.
 
 ## Pre-check
 
 If `docs/specs/$1/spec.md` already exists, ask the user via AskUserQuestion:
 
-> A spec for `$1` already exists. Choose: **(a)** overwrite, **(b)** update via `/sdd:update $1`, **(c)** cancel.
+> A spec for `$1` already exists. Choose: **(a)** overwrite, **(b)** update via `/spec-tests-first:update $1`, **(c)** cancel.
 
 Stop unless they choose (a).
 
@@ -29,7 +29,7 @@ Stop unless they choose (a).
 
 **Sub-capabilities of one feature go in ONE spec as separate Acceptance Criteria — not multiple specs.** Multiple genuinely independent features go in **separate specs**, implemented sequentially. The full split-vs-combine decision logic lives in Step 1.5 below — invoke it whenever the user's request spans capabilities that could ship independently.
 
-## Step 0 — Monorepo detection (on first `/sdd:spec` only)
+## Step 0 — Monorepo detection (on first `/spec-tests-first:spec` only)
 
 If `CLAUDE.md ## Test commands` already exists, skip this step — the multi-service decision was made on a prior invocation.
 
@@ -57,7 +57,7 @@ If multiple service manifests are found, AskUserQuestion:
 > - **(b)** Single-service — pick one to use STF on; ignore the others
 > - **(c)** Cancel — I'll restructure first
 
-On (a): record the detected service names; the spec template below adds a `Services:` line and AC sections can carry service tags. Test commands and profiles get configured in `/sdd:build` on first run (one per service).
+On (a): record the detected service names; the spec template below adds a `Services:` line and AC sections can carry service tags. Test commands and profiles get configured in `/spec-tests-first:build` on first run (one per service).
 
 On (b): record the chosen service name; the spec stays in single-service shape (no `Services:` line, flat AC list).
 
@@ -75,7 +75,7 @@ Quick context gather, in this order. Stop when you have enough:
 
 ## Step 1.5 — Scope check (catch oversized specs BEFORE writing)
 
-Before going further, evaluate whether the user's request is one feature or several. Prevention is much cheaper than splitting an already-written spec after `/sdd:build` and `/sdd:review` have run against it.
+Before going further, evaluate whether the user's request is one feature or several. Prevention is much cheaper than splitting an already-written spec after `/spec-tests-first:build` and `/spec-tests-first:review` have run against it.
 
 ### Heuristic — what counts as "should split"?
 
@@ -102,7 +102,7 @@ If the request looks like multiple features, AskUserQuestion before going to Ste
 > They could ship independently — `<name1>` doesn't need `<name2>` to work, and vice versa.
 >
 > Choose:
-> - **(a, recommended)** Write one spec per feature, sequentially. I'll start with `<name1>` (or you pick) and you can `/sdd:spec <name2>` after.
+> - **(a, recommended)** Write one spec per feature, sequentially. I'll start with `<name1>` (or you pick) and you can `/spec-tests-first:spec <name2>` after.
 > - **(b)** Combine into one spec with the capabilities as separate AC clusters (`AC-1.*`, `AC-2.*`, ...). Better only if they share enough domain model.
 > - **(c)** Let me clarify — they're actually coupled because <reason>. I'll describe the relationship and you'll decide.
 
@@ -110,7 +110,7 @@ If the request looks like multiple features, AskUserQuestion before going to Ste
 
 On **(a) Split**:
 - AskUserQuestion which one to spec first (default: the one with the simplest interface, or the user's first mention if order was clear).
-- Create a `## Related features` reference in this spec's Section 5 (Technical details) listing the other feature names and a one-line goal each. This is a forward-reference — `/sdd:spec <other-name>` later can do the inverse.
+- Create a `## Related features` reference in this spec's Section 5 (Technical details) listing the other feature names and a one-line goal each. This is a forward-reference — `/spec-tests-first:spec <other-name>` later can do the inverse.
 - Continue with Step 2 below for the chosen first feature only.
 
 On **(b) Combine**:
@@ -123,7 +123,7 @@ On **(c) Clarify**:
 ### When to skip Step 1.5 entirely
 
 - The user's prompt is a single clear capability (e.g. "add a /healthcheck endpoint"). No prompt needed.
-- The user is invoking `/sdd:update` (this skill runs the same template but the multi-feature decision was already made when the original spec was written).
+- The user is invoking `/spec-tests-first:update` (this skill runs the same template but the multi-feature decision was already made when the original spec was written).
 - The user explicitly said "one spec for all of this" in their initial message.
 
 When in doubt, ask. The 30 seconds for an AskUserQuestion is much cheaper than the 30 minutes of re-iterating an oversized spec.
@@ -199,7 +199,7 @@ Group AC-IDs by capability. The major number is the capability cluster (1 = add,
 - **AC-2.2:** On 401 response, LoginForm shows the inline error text "Invalid credentials".
 ```
 
-`/sdd:build` reads each AC's enclosing subsection header to resolve its service, then uses that service's test command and layout profile from `CLAUDE.md`. ACs without a subsection header in a multi-service spec are an error — every AC must belong to exactly one service.
+`/spec-tests-first:build` reads each AC's enclosing subsection header to resolve its service, then uses that service's test command and layout profile from `CLAUDE.md`. ACs without a subsection header in a multi-service spec are an error — every AC must belong to exactly one service.
 
 ## 4. User stories
 
@@ -215,7 +215,7 @@ Fill in only what applies. Don't invent details that the user didn't state and C
 - **Entry point / module** — where this code lives
 - **Data model** — tables, schemas, file format
 - **API surface** — endpoints / methods / request-response (only if the feature has an API)
-- **Storage** — name the runtime data file or DB if the feature persists state (so /sdd:build can add it to .gitignore)
+- **Storage** — name the runtime data file or DB if the feature persists state (so /spec-tests-first:build can add it to .gitignore)
 - **Test framework** — pytest / jest / etc., to lock the test phase
 - **Integrations** — external services, queues, third-party APIs
 
@@ -231,7 +231,7 @@ Fill in only what applies. Don't invent details that the user didn't state and C
 
 ## 8. Validation steps
 
-Concrete steps to manually verify the feature works end-to-end. Each step MUST have a `VS-N` ID. Used by `/sdd:validate`. Mix automated (commands, scripts, API calls) and manual (UI checks).
+Concrete steps to manually verify the feature works end-to-end. Each step MUST have a `VS-N` ID. Used by `/spec-tests-first:validate`. Mix automated (commands, scripts, API calls) and manual (UI checks).
 
 - **VS-1** *(automated)*: <exact command to run> — <expected outcome>
 - **VS-2** *(manual)*: <step a human performs> — <what they should see>
@@ -248,7 +248,7 @@ Print one short confirmation listing:
 Then AskUserQuestion to gate the cycle:
 
 > Spec written to `docs/specs/$1/spec.md`. Please review it now and decide:
-> - **(a) Approve** — the spec captures what you want; `/sdd:build` can begin per-AC RGR
+> - **(a) Approve** — the spec captures what you want; `/spec-tests-first:build` can begin per-AC RGR
 > - **(b) Edit** — I'll revise sections; tell me what to change
 > - **(c) Cancel** — leave the file as a draft; don't mark the spec phase done
 
@@ -280,16 +280,16 @@ On **(a) Approve**:
    <one row per AC-ID, all status = not-started>
    ```
 
-   If `spec-status.md` already exists from a prior cycle (`/sdd:update`), Edit the file:
+   If `spec-status.md` already exists from a prior cycle (`/spec-tests-first:update`), Edit the file:
    - Mark Phase 1 row Status = `done`, Updated = today, Notes = `"approved by user (re-approved <YYYY-MM-DD>)"`.
-   - For added/modified ACs from this update, set their per-AC row to `not-started` / `stale` (already done by `/sdd:update`).
+   - For added/modified ACs from this update, set their per-AC row to `not-started` / `stale` (already done by `/spec-tests-first:update`).
 
 2. Output the next-step pointer:
 
    ```
    Spec approved for `$1`.
-   Next: /sdd:build $1
-     /sdd:build will detect the test framework + layout profile, scaffold tests,
+   Next: /spec-tests-first:build $1
+     /spec-tests-first:build will detect the test framework + layout profile, scaffold tests,
      and iterate each AC via per-AC red-green-refactor (one failing test → minimal
      impl → green verified → next AC).
    ```
@@ -300,12 +300,12 @@ On **(c) Cancel**: leave `spec.md` on disk but DO NOT create or update `spec-sta
 
 ```
 Spec draft saved to `docs/specs/$1/spec.md` but not approved.
-Re-run /sdd:spec $1 when ready to approve and proceed.
+Re-run /spec-tests-first:spec $1 when ready to approve and proceed.
 ```
 
-Stop. `/sdd:build` will refuse to run on an unapproved spec — see `/sdd:build`'s pre-check 0.
+Stop. `/spec-tests-first:build` will refuse to run on an unapproved spec — see `/spec-tests-first:build`'s pre-check 0.
 
-DO NOT proceed to building in this skill — the user must explicitly trigger `/sdd:build`.
+DO NOT proceed to building in this skill — the user must explicitly trigger `/spec-tests-first:build`.
 
 ## Red Flags — STOP and reset
 
@@ -313,8 +313,8 @@ DO NOT proceed to building in this skill — the user must explicitly trigger `/
 |---|---|
 | "I'll skip Step 1.5 (scope check) for small-looking requests" | Small-looking requests with "and also" become oversized specs. The 30 seconds for an AskUserQuestion is much cheaper than re-iterating later. |
 | "I'll auto-approve at Step 4 since the spec looks fine" | The user has to approve. The Phase 1 gate is for the human, not for you. Always present `(a)/(b)/(c)` and wait. |
-| "I'll write `/sdd:tests $1` as the next step" | `/sdd:tests` is deprecated. Always point at `/sdd:build $1`. |
-| "Error path AC without a discriminating signal is fine, the test phase will figure it out" | `/sdd:build`'s RED step refuses to write a too-permissive test. Spec the signal now, or fix it after the AC fails RED. |
+| "I'll write `/spec-tests-first:tests $1` as the next step" | `/spec-tests-first:tests` is deprecated. Always point at `/spec-tests-first:build $1`. |
+| "Error path AC without a discriminating signal is fine, the test phase will figure it out" | `/spec-tests-first:build`'s RED step refuses to write a too-permissive test. Spec the signal now, or fix it after the AC fails RED. |
 | "The user gave vague requirements — I'll fill in details" | Ask. Step 2 exists for exactly this. Don't invent the spec; capture what the user actually wants. |
 
 ## Rules

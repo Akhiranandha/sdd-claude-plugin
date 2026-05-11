@@ -1,4 +1,4 @@
-# /sdd:init — Design Document
+# /spec-tests-first:init — Design Document
 
 **Date:** 2026-05-11
 **Plugin:** `spec-tests-first` (target version: 2.2.0)
@@ -6,10 +6,10 @@
 
 ## Summary
 
-Add a new `/sdd:init <project-name>` skill that bridges the gap between STF v2's assumed greenfield workflow and the reality of using STF on existing repositories. The skill auto-detects which of **three init cases** applies and runs the appropriate path:
+Add a new `/spec-tests-first:init <project-name>` skill that bridges the gap between STF v2's assumed greenfield workflow and the reality of using STF on existing repositories. The skill auto-detects which of **three init cases** applies and runs the appropriate path:
 
-- **Case A — Fresh repo, fresh project.** No source, no specs. Init seeds `CLAUDE.md`'s `## Test commands` + `## Test layout` sections and tells the user to run `/sdd:spec`. Near-no-op.
-- **Case B — Existing codebase, no specs.** Real source code exists; the user wants to start using STF for *new* features. Init detects stacks (multi-service for monorepos), resolves test profiles, scaffolds `docs/codebase-map.md` from existing source (with TODO placeholders), and seeds `CLAUDE.md`. No specs are written — those come from `/sdd:spec`.
+- **Case A — Fresh repo, fresh project.** No source, no specs. Init seeds `CLAUDE.md`'s `## Test commands` + `## Test layout` sections and tells the user to run `/spec-tests-first:spec`. Near-no-op.
+- **Case B — Existing codebase, no specs.** Real source code exists; the user wants to start using STF for *new* features. Init detects stacks (multi-service for monorepos), resolves test profiles, scaffolds `docs/codebase-map.md` from existing source (with TODO placeholders), and seeds `CLAUDE.md`. No specs are written — those come from `/spec-tests-first:spec`.
 - **Case C — Existing repo with flat specs.** Pre-existing `docs/specs/*.md` flat files that don't match v2's subdirectory layout (the LKMS case). Init restructures them into `docs/specs/<feature>/spec.md`, converts US-N IDs to AC-N.M format (happy paths deterministic, error paths flagged with `TODO(needs discriminating signal)`), seeds per-feature `spec-status.md` with the `## Phase progress` table, scaffolds `docs/codebase-map.md`, and runs a two-signal scan to propose Phase 2 status (done / pending) per feature with a single user confirmation table.
 
 The skill is **idempotent** — re-running it on a partially-init'd project skips already-migrated features and only acts on what's new.
@@ -27,11 +27,11 @@ The skill is **idempotent** — re-running it on a partially-init'd project skip
 - Run tests automatically as part of init. Test execution is opt-in (default: just check whether test files exist; don't actually run them — could cost minutes on a large project).
 - Generate spec content from source code. Init only restructures existing spec text and seeds skeleton files. The user fills in TODO signals and codebase-map role descriptions afterward.
 - Migrate from other SDD-style frameworks (e.g. agile-style story files in JIRA, RST specs). v2.2 scope is flat Markdown files following the loose "title + sections" shape captured in `sdd-init-notes.md`.
-- Detect partial-implementation gradients ("AC-1.1 done, AC-1.2 pending within the same feature"). Init treats Phase 2 status as feature-level binary (`done` / `pending`); the per-AC table within `spec-status.md` is populated at `not-started` and gets refined by `/sdd:build` later.
+- Detect partial-implementation gradients ("AC-1.1 done, AC-1.2 pending within the same feature"). Init treats Phase 2 status as feature-level binary (`done` / `pending`); the per-AC table within `spec-status.md` is populated at `not-started` and gets refined by `/spec-tests-first:build` later.
 
 ## The three cases — auto-detection
 
-`/sdd:init <project-name>` reads the working directory and decides:
+`/spec-tests-first:init <project-name>` reads the working directory and decides:
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
@@ -54,7 +54,7 @@ Edge case: **mixed state** (some specs already in subdirectories, some still fla
 The detection prompt at start:
 
 ```
-/sdd:init for project `<name>`.
+/spec-tests-first:init for project `<name>`.
 
 Scanning...
   Source manifests detected: <list — e.g. "package.json (frontend/), pom.xml (backend/)">
@@ -75,14 +75,14 @@ User confirms before init makes any changes.
 **Steps:**
 
 1. Confirm with user the project is meant to be empty/greenfield (sanity check).
-2. Initialize git if not already (`git init` via AskUserQuestion gate — same as `/sdd:build`'s pre-check 2).
-3. Create `.gitignore` with the existing language-aware defaults from `/sdd:build`'s pre-check 3, plus a `chat-session/` entry preemptively (Claude Code session artifacts).
-4. Ask the user for the project's primary stack (the test layout profile question). Save `CLAUDE.md ## Test commands` + `## Test layout` upfront so `/sdd:spec` doesn't have to ask later.
+2. Initialize git if not already (`git init` via AskUserQuestion gate — same as `/spec-tests-first:build`'s pre-check 2).
+3. Create `.gitignore` with the existing language-aware defaults from `/spec-tests-first:build`'s pre-check 3, plus a `chat-session/` entry preemptively (Claude Code session artifacts).
+4. Ask the user for the project's primary stack (the test layout profile question). Save `CLAUDE.md ## Test commands` + `## Test layout` upfront so `/spec-tests-first:spec` doesn't have to ask later.
 5. Create empty `docs/codebase-map.md` with the fresh template (project-wide map, ready to fill in as specs are built).
 6. Print next-step pointer:
 
    ```
-   /sdd:init complete — project `<name>` ready for SDD.
+   /spec-tests-first:init complete — project `<name>` ready for SDD.
 
    What's set up:
      - CLAUDE.md ## Test commands ↓ <command>
@@ -90,7 +90,7 @@ User confirms before init makes any changes.
      - docs/codebase-map.md (empty)
      - .gitignore scaffolded
 
-   Next: /sdd:spec <feature> — write your first feature spec
+   Next: /spec-tests-first:spec <feature> — write your first feature spec
    ```
 
 **No source-file scanning, no migration.** Case A is fast (under a minute).
@@ -102,7 +102,7 @@ User confirms before init makes any changes.
 **Steps:**
 
 1. Same git/.gitignore pre-checks as Case A.
-2. **Multi-service detection.** Scan for stack manifests in subdirectories (same logic as `/sdd:spec`'s Step 0). If multiple services detected, AskUserQuestion: configure multi-service (recommended) / single-service / cancel.
+2. **Multi-service detection.** Scan for stack manifests in subdirectories (same logic as `/spec-tests-first:spec`'s Step 0). If multiple services detected, AskUserQuestion: configure multi-service (recommended) / single-service / cancel.
 3. **Profile resolution.** For each service (or the single service), derive a candidate profile from the test command in the manifest (e.g. `package.json scripts.test` → `js-jest`/`js-vitest`/`react-jest-rtl` family). AskUserQuestion to confirm + save to `CLAUDE.md`.
 4. **Codebase-map seeding.** This is the bulk of Case B's work:
    - For each service, look up the profile's file-discovery patterns from the references file (see "References" section below).
@@ -114,15 +114,15 @@ User confirms before init makes any changes.
 5. Print a summary table of detected files + a next-step pointer:
 
    ```
-   /sdd:init complete — project `<name>` ready for SDD.
+   /spec-tests-first:init complete — project `<name>` ready for SDD.
 
    What's set up:
      - CLAUDE.md ## Test commands ↓ <per service>
      - CLAUDE.md ## Test layout ↓ <per service>
      - docs/codebase-map.md seeded with <N> files (<X> per service for monorepo)
-       → fill in <!-- TODO --> role descriptions before /sdd:spec
+       → fill in <!-- TODO --> role descriptions before /spec-tests-first:spec
 
-   Next: /sdd:spec <feature> — write your first feature spec against existing code
+   Next: /spec-tests-first:spec <feature> — write your first feature spec against existing code
    ```
 
 **Existing source is left untouched.** No tests are added, no code is moved. Init only inventories.
@@ -177,7 +177,7 @@ In **filename sort order** (so `01-...` is processed before `02-...`, ensuring t
 
    | Phase           | Status      | Updated      | Notes                              |
    |-----------------|-------------|--------------|------------------------------------|
-   | 1. spec         | done        | <YYYY-MM-DD> | migrated by /sdd:init              |
+   | 1. spec         | done        | <YYYY-MM-DD> | migrated by /spec-tests-first:init              |
    | 2. build        | <X>         | <YYYY-MM-DD> | <"existing impl detected" / "—">   |
    | 3. review       | pending     | —            | —                                  |
    | 4. fix          | pending     | —            | —                                  |
@@ -235,14 +235,14 @@ Threshold rules:
 Choose:
 - (a, recommended) Accept all proposed statuses
 - (b) Override per feature — I'll walk you through each
-- (c) Mark all as pending (conservative — you'll /sdd:build each to verify)
+- (c) Mark all as pending (conservative — you'll /spec-tests-first:build each to verify)
 - (d) Cancel migration (rollback all init changes)
 - Optional: (e) Run tests for done-status features now (confirms test pass) — could be slow
 ```
 
 On (a): apply the proposed statuses, write per-feature `spec-status.md`. Continue to Step C.6.
 On (b): for each feature, AskUserQuestion individually (status: done / pending / stale).
-On (c): set every Phase 2 = `pending` regardless of signals. User will `/sdd:build` each manually.
+On (c): set every Phase 2 = `pending` regardless of signals. User will `/spec-tests-first:build` each manually.
 On (d): delete all subdirectory specs and spec-status files created so far in this run; restore flat files; abort.
 On (e): for each feature proposed as `done`, run the resolved test command scoped to that feature's tests. If tests pass → keep `done`. If tests fail → downgrade to `stale` (impl exists but test is broken). Then proceed to (a).
 
@@ -251,13 +251,13 @@ On (e): for each feature proposed as `done`, run the resolved test command scope
 Print the consolidated warnings:
 
 ```
-/sdd:init migration complete for `<project>`.
+/spec-tests-first:init migration complete for `<project>`.
 
 Migrated features: <list>
 Project-level docs moved to docs/: <list>
 Codebase-map.md seeded with <N> files (fill in <!-- TODO --> role descriptions)
 
-⚠ <K> error-path ACs need discriminating signals before /sdd:build can RGR-iterate them:
+⚠ <K> error-path ACs need discriminating signals before /spec-tests-first:build can RGR-iterate them:
   - docs/specs/auth/spec.md: AC-1.2 — TODO(needs discriminating signal)
   - docs/specs/billing/spec.md: AC-2.3 — TODO(needs discriminating signal)
   ...
@@ -265,12 +265,12 @@ Codebase-map.md seeded with <N> files (fill in <!-- TODO --> role descriptions)
 Next steps (in order):
   1. Open the migrated spec files and fill in TODO discriminating signals (or remove the error-path ACs if they don't apply).
   2. Fill in <!-- TODO --> role descriptions in docs/codebase-map.md.
-  3. Run /sdd:status to confirm everything looks right.
-  4. For features marked Phase 2 = pending or stale: run /sdd:build <feature> to implement / re-verify.
-  5. For features marked Phase 2 = done: run /sdd:review <feature> to bring them under SDD review.
+  3. Run /spec-tests-first:status to confirm everything looks right.
+  4. For features marked Phase 2 = pending or stale: run /spec-tests-first:build <feature> to implement / re-verify.
+  5. For features marked Phase 2 = done: run /spec-tests-first:review <feature> to bring them under SDD review.
 ```
 
-Also, **delete the original flat files** after the user confirms the migration looks right — OR leave them in place with a `## Migrated by /sdd:init on <date>` note appended. Default: leave them in place. AskUserQuestion at the very end:
+Also, **delete the original flat files** after the user confirms the migration looks right — OR leave them in place with a `## Migrated by /spec-tests-first:init on <date>` note appended. Default: leave them in place. AskUserQuestion at the very end:
 
 > Migration verified. Delete the original flat spec files at `docs/specs/*.md`?
 > - (a) Yes — they're superseded by the subdirectory specs
@@ -339,7 +339,7 @@ Example reference section:
 
 ## Idempotency rules
 
-`/sdd:init` must be safe to re-run:
+`/spec-tests-first:init` must be safe to re-run:
 
 | Condition | Behavior |
 |---|---|
@@ -352,15 +352,15 @@ Example reference section:
 
 ## Backward compatibility
 
-- **v1 plugin users:** If a project was initialized by the v1 `spec-lean` plugin (story-driven), `/sdd:init` recognizes the format and runs Case C. The migration converts US-N stories to AC-N.M acceptance criteria with `TODO(needs discriminating signal)` flags for error-path ACs.
-- **v2 plugin users with no init:** Already on `docs/specs/<feature>/` layout. `/sdd:init` detects the v2 state and reports "already initialized" without changes.
-- **v2.1 plugin users:** Same — `/sdd:init` only acts on flat files and missing config.
+- **v1 plugin users:** If a project was initialized by the v1 `spec-lean` plugin (story-driven), `/spec-tests-first:init` recognizes the format and runs Case C. The migration converts US-N stories to AC-N.M acceptance criteria with `TODO(needs discriminating signal)` flags for error-path ACs.
+- **v2 plugin users with no init:** Already on `docs/specs/<feature>/` layout. `/spec-tests-first:init` detects the v2 state and reports "already initialized" without changes.
+- **v2.1 plugin users:** Same — `/spec-tests-first:init` only acts on flat files and missing config.
 
 ## Decisions log
 
 Decisions made during the design conversation (in order):
 
-1. **Scope — one merged skill with auto-detection.** `/sdd:init` decides A/B/C, not three separate commands.
+1. **Scope — one merged skill with auto-detection.** `/spec-tests-first:init` decides A/B/C, not three separate commands.
 2. **Conversion — US-N → AC-N.M with TODO for error-path signals.** Happy-path stories convert deterministically; error-path ACs get `TODO(needs discriminating signal)` and a warning at the end of init.
 3. **File structure — mostly flat, one references file.** Main SKILL.md holds decision logic + shared operations; `references/codebase-map-patterns.md` holds the per-profile globs and role templates.
 4. **Implementation detection — two-signal scan with single confirmation table.** Source-file presence + test-file presence. User confirms in batch with optional opt-in test-run for proposed-done features.
@@ -381,14 +381,14 @@ Suggested slice breakdown:
 9. **Slice 9** — Case C — spec-status.md scaffolding with Phase progress.
 10. **Slice 10** — Two-signal scan + confirmation table.
 11. **Slice 11** — Idempotency hardening + warning consolidation.
-12. **Slice 12** — `/sdd:run` integration: add a Phase 0 entry that detects and offers to run `/sdd:init` if needed.
+12. **Slice 12** — `/spec-tests-first:run` integration: add a Phase 0 entry that detects and offers to run `/spec-tests-first:init` if needed.
 13. **Slice 13** — README + plugin.json bump to 2.2.0 + smoke verification.
 
 Each slice ends with an atomic commit. The references file (`codebase-map-patterns.md`) gets built up incrementally — patterns added in Slice 5 for the 12 built-in profiles plus a `custom` placeholder.
 
 ## Out of scope for v2.2 (future considerations)
 
-- **Standalone `/sdd:migrate` for non-init scenarios.** If a user adds a flat spec later (after init), they'd run `/sdd:init` again — but the UX would be confusing because the command name says "init." A future `/sdd:migrate` could handle this cleanly without re-running init for already-set-up parts.
+- **Standalone `/spec-tests-first:migrate` for non-init scenarios.** If a user adds a flat spec later (after init), they'd run `/spec-tests-first:init` again — but the UX would be confusing because the command name says "init." A future `/spec-tests-first:migrate` could handle this cleanly without re-running init for already-set-up parts.
 - **AI-generated role descriptions for codebase-map.** Currently TODO placeholders. A future skill could analyze each file's content and propose a one-line role, with user review.
 - **Specs in non-Markdown formats.** RST, AsciiDoc, JIRA-exported, etc. Not supported in v2.2.
 - **Migration from other SDD plugins** (e.g. agile-spec, structure-driven). Not supported.

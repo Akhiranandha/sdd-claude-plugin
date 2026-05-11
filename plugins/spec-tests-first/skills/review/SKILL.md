@@ -1,13 +1,13 @@
 ---
 name: review
-description: Phase 3 of the SDD cycle. Use when the user invokes /sdd:review <feature> to run a code-quality + security review on the feature's changed files. Dispatches code-quality-reviewer and security-reviewer in parallel against the file list, aggregates via code-reporter, and writes ./reports/code-review_<feature>_<ts>.md with stable finding-IDs (SEC-NNN / QUA-NNN) and a per-finding `Status: pending` line. Read-only — never edits source files. Updates docs/specs/<feature>/spec-status.md only to set the `Latest review:` pointer to the new report path. Does NOT gate progress (no BLOCK/CAUTION/GO); the Critical gate lives in /sdd:fix.
+description: Phase 3 of the SDD cycle. Use when the user invokes /spec-tests-first:review <feature> to run a code-quality + security review on the feature's changed files. Dispatches code-quality-reviewer and security-reviewer in parallel against the file list, aggregates via code-reporter, and writes ./reports/code-review_<feature>_<ts>.md with stable finding-IDs (SEC-NNN / QUA-NNN) and a per-finding `Status: pending` line. Read-only — never edits source files. Updates docs/specs/<feature>/spec-status.md only to set the `Latest review:` pointer to the new report path. Does NOT gate progress (no BLOCK/CAUTION/GO); the Critical gate lives in /spec-tests-first:fix.
 argument-hint: <feature-name>
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent
 ---
 
-# /sdd:review — Phase 3: Code-Quality + Security Review
+# /spec-tests-first:review — Phase 3: Code-Quality + Security Review
 
-**Announce at start:** Say to the user: "I'm using /sdd:review to dispatch `code-quality-reviewer` and `security-reviewer` in parallel against `$1`'s changed files, then aggregating via `code-reporter` into a timestamped report. Read-only — no source edits." Then proceed.
+**Announce at start:** Say to the user: "I'm using /spec-tests-first:review to dispatch `code-quality-reviewer` and `security-reviewer` in parallel against `$1`'s changed files, then aggregating via `code-reporter` into a timestamped report. Read-only — no source edits." Then proceed.
 
 You are running Phase 3 of the SDD cycle for feature **$1**. Inputs: the feature's source code on the `feature/$1` branch + `docs/specs/$1/spec.md` + `docs/specs/$1/spec-status.md`. Output: `./reports/code-review_$1_<YYYY-MM-DD_HHMMSS>.md`.
 
@@ -21,11 +21,11 @@ The reviewer agents are read-only by tool grant; the only mutating operations th
 
 1. **Spec status complete?** Read `docs/specs/$1/spec-status.md`. Every AC-ID should have status `pass`. If anything is `fail` / `blocked` / `stale` / `in-progress`, stop and tell the user:
 
-   > Build is not complete for `$1` — `spec-status.md` shows non-pass ACs. Run `/sdd:build $1` first.
+   > Build is not complete for `$1` — `spec-status.md` shows non-pass ACs. Run `/spec-tests-first:build $1` first.
 
-2. **Tests still green?** Resolve the test command + path (Phase 2 wrote `## Test commands` and `## Test layout` to `CLAUDE.md`; read them — see `/sdd:build`'s Step 2 / Step 3 for parsing rules, including multi-service awareness). Dispatch the `test-runner` subagent once against the feature's full suite to confirm. If `failed` or `errored` is non-empty, stop with:
+2. **Tests still green?** Resolve the test command + path (Phase 2 wrote `## Test commands` and `## Test layout` to `CLAUDE.md`; read them — see `/spec-tests-first:build`'s Step 2 / Step 3 for parsing rules, including multi-service awareness). Dispatch the `test-runner` subagent once against the feature's full suite to confirm. If `failed` or `errored` is non-empty, stop with:
 
-   > Feature tests are not green. Re-run `/sdd:build $1` (or investigate manually). Review aborted.
+   > Feature tests are not green. Re-run `/spec-tests-first:build $1` (or investigate manually). Review aborted.
 
    Do NOT proceed to the reviewers if tests aren't green — they'd be reviewing broken code.
 
@@ -39,12 +39,12 @@ Build the file list to review. Sources:
    git diff --name-only main...HEAD
    ```
 
-2. **Cross-reference with `docs/codebase-map.md`** — pick out rows touched/added in this build (build's end-of-build artifact step updates this map; entries added during the most recent `/sdd:build` are the ones to include).
+2. **Cross-reference with `docs/codebase-map.md`** — pick out rows touched/added in this build (build's end-of-build artifact step updates this map; entries added during the most recent `/spec-tests-first:build` are the ones to include).
 
 3. **Feature test files.** Per the resolved profile in `CLAUDE.md ## Test layout`:
    - `feature_anchor: directory` → all files under `tests_root` (e.g. `tests/$1/**`, `src/test/java/.../$1/**`).
    - `feature_anchor: file_prefix` → files in `tests_root` matching the per-feature prefix.
-   - `feature_anchor: co-located` → grep across the source tree for test files whose names contain any of this feature's AC-IDs (`AC-1.1`, `AC-1.2`, ...). The AC-ID embedding rule from `/sdd:build` makes this deterministic.
+   - `feature_anchor: co-located` → grep across the source tree for test files whose names contain any of this feature's AC-IDs (`AC-1.1`, `AC-1.2`, ...). The AC-ID embedding rule from `/spec-tests-first:build` makes this deterministic.
 
 4. **Exclude:**
    - Generated files: `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `Cargo.lock`, `go.sum`, `*.min.js`, `*.min.css`, snapshot files, generated proto/SDK code.
@@ -54,7 +54,7 @@ Build the file list to review. Sources:
 
 If the resulting list is empty, stop with:
 
-> No files in scope to review for `$1`. (Did `/sdd:build` run on this branch?)
+> No files in scope to review for `$1`. (Did `/spec-tests-first:build` run on this branch?)
 
 Print the resolved list (or the count and a head of 10 paths if it's long) so the user can sanity-check the scope before reviewers fire.
 
@@ -70,7 +70,7 @@ Agent[code-quality-reviewer]
   prompt: |
     Review the following files for code quality (maintainability, complexity,
     naming, dead code, error handling, test coverage gaps). The scope is the
-    feature "$1" — files were changed by /sdd:build to implement
+    feature "$1" — files were changed by /spec-tests-first:build to implement
     docs/specs/$1/spec.md.
 
     Files:
@@ -159,20 +159,20 @@ Review complete for `$1`.
   Findings: <C> critical, <H> high, <M> medium, <L> low, <I> informational
 
 Next:
-  /sdd:fix $1      — walk findings one-by-one with revert-on-regression (recommended if any critical or high)
-  /sdd:validate $1 — proceed without fixing (you can run /sdd:fix later)
+  /spec-tests-first:fix $1      — walk findings one-by-one with revert-on-regression (recommended if any critical or high)
+  /spec-tests-first:validate $1 — proceed without fixing (you can run /spec-tests-first:fix later)
 ```
 
-If both `critical` and `high` are zero, omit the recommended-emphasis and present `/sdd:validate` first.
+If both `critical` and `high` are zero, omit the recommended-emphasis and present `/spec-tests-first:validate` first.
 
-Do NOT print the report contents back. The user opens the file. Do NOT propose any further automatic action — gating is `/sdd:fix`'s job.
+Do NOT print the report contents back. The user opens the file. Do NOT propose any further automatic action — gating is `/spec-tests-first:fix`'s job.
 
 ## Design invariants
 
 - **Read-only across source.** This skill never edits source files, tests, the spec, or `codebase-map.md`. The single mutating operation is the targeted `Edit` of the `Latest review:` line in `spec-status.md` — which is metadata, not code.
-- **No verdict gating.** This skill always reports the report path and the counts. It never tells the user "you can't continue". The Critical gate lives in `/sdd:fix`. The shipping gate (no outstanding Critical) lives in `/sdd:ship`.
-- **Fresh report every invocation.** Re-running `/sdd:review $1` produces a new timestamped file under `./reports/`. The old reports stay on disk for history. The `Latest review:` pointer is updated to the newest.
-- **Stable finding IDs per report.** `SEC-001`, `SEC-002`, `QUA-001`, ... are sequential within a single report. They do NOT survive across reports — a fresh review = fresh IDs. `/sdd:fix` is invoked against a specific report and reads IDs from there.
+- **No verdict gating.** This skill always reports the report path and the counts. It never tells the user "you can't continue". The Critical gate lives in `/spec-tests-first:fix`. The shipping gate (no outstanding Critical) lives in `/spec-tests-first:ship`.
+- **Fresh report every invocation.** Re-running `/spec-tests-first:review $1` produces a new timestamped file under `./reports/`. The old reports stay on disk for history. The `Latest review:` pointer is updated to the newest.
+- **Stable finding IDs per report.** `SEC-001`, `SEC-002`, `QUA-001`, ... are sequential within a single report. They do NOT survive across reports — a fresh review = fresh IDs. `/spec-tests-first:fix` is invoked against a specific report and reads IDs from there.
 - **Parallel reviewer dispatch is mandatory.** Sequential dispatch is a contract violation; the two agents don't share state, and parallel halves the wall time.
 - **Test green is a hard pre-check.** Reviewing broken code wastes review tokens and produces noise. If tests aren't green, abort early.
 
@@ -180,9 +180,9 @@ Do NOT print the report contents back. The user opens the file. Do NOT propose a
 
 | Case | Behavior |
 |---|---|
-| `./reports/` not writable | Reporter handles this — surfaces the error and asks. `/sdd:review` echoes the reporter's reply and stops. |
-| Zero findings from both reviewers | Reporter writes "No high-priority items — both reviewers reported a clean bill." `/sdd:review` summary shows all zeros and recommends `/sdd:validate`. |
-| One reviewer's output empty or missing | Reporter embeds a `> Note: No <quality/security>-reviewer output was supplied.` and continues. `/sdd:review` echoes the partial report. |
+| `./reports/` not writable | Reporter handles this — surfaces the error and asks. `/spec-tests-first:review` echoes the reporter's reply and stops. |
+| Zero findings from both reviewers | Reporter writes "No high-priority items — both reviewers reported a clean bill." `/spec-tests-first:review` summary shows all zeros and recommends `/spec-tests-first:validate`. |
+| One reviewer's output empty or missing | Reporter embeds a `> Note: No <quality/security>-reviewer output was supplied.` and continues. `/spec-tests-first:review` echoes the partial report. |
 | Multi-service feature | Scope still comes from `git diff --name-only main...HEAD` — cross-service. Reviewers handle multi-language naturally. |
 | Files extremely large (>10k lines) | Reviewers handle internally; no special case here. |
 
@@ -191,8 +191,8 @@ Do NOT print the report contents back. The user opens the file. Do NOT propose a
 | Thought | Reality |
 |---|---|
 | "I'll dispatch them serially — they don't share state anyway" | Parallel dispatch is part of the contract. Serial means 2× wall time for no gain. Use a single message with two Agent calls. |
-| "I'll add a `Verdict: BLOCK/CAUTION/GO` to the summary" | This phase has no verdict. Gating lives in `/sdd:fix` (Critical) and `/sdd:ship` (no outstanding Critical). Don't invent gates. |
-| "I'll write the report file myself instead of dispatching the reporter" | The reporter has its own format, finding-id rules, and Status-column initialization. Bypassing it breaks `/sdd:fix`. Always dispatch. |
+| "I'll add a `Verdict: BLOCK/CAUTION/GO` to the summary" | This phase has no verdict. Gating lives in `/spec-tests-first:fix` (Critical) and `/spec-tests-first:ship` (no outstanding Critical). Don't invent gates. |
+| "I'll write the report file myself instead of dispatching the reporter" | The reporter has its own format, finding-id rules, and Status-column initialization. Bypassing it breaks `/spec-tests-first:fix`. Always dispatch. |
 | "Tests are failing but I'll review anyway" | The pre-check (test-runner pre-flight) exists to prevent reviewing broken code. If it returns non-empty `failed`/`errored`, abort. |
 | "I'll print the full report back to the user" | The report stays on disk. Echo only the path + finding counts. Users open the file in their editor. |
 

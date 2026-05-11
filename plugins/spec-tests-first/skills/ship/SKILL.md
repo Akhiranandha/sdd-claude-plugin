@@ -1,19 +1,19 @@
 ---
 name: ship
-description: Phase 6 of the SDD cycle. Use when the user invokes /sdd:ship <feature> to commit, push, open a PR, and merge. Pre-checks block on outstanding Critical findings from the latest /sdd:review report. Drafts an SDD-aware commit message (AC list, validation summary, review counts) and PR body (Summary, AC checklist, validation checklist, review report link, test plan). Uses inline gh + git — zero external plugin dependencies.
+description: Phase 6 of the SDD cycle. Use when the user invokes /spec-tests-first:ship <feature> to commit, push, open a PR, and merge. Pre-checks block on outstanding Critical findings from the latest /spec-tests-first:review report. Drafts an SDD-aware commit message (AC list, validation summary, review counts) and PR body (Summary, AC checklist, validation checklist, review report link, test plan). Uses inline gh + git — zero external plugin dependencies.
 argument-hint: <feature-name>
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 ---
 
-# /sdd:ship — Phase 6: Commit, Push, PR, Merge
+# /spec-tests-first:ship — Phase 6: Commit, Push, PR, Merge
 
-**Announce at start:** Say to the user: "I'm using /sdd:ship to commit + push + open a PR + (with your permission) merge, with an SDD-aware commit message and PR body. Critical findings outstanding will block — I'll check first." Then proceed.
+**Announce at start:** Say to the user: "I'm using /spec-tests-first:ship to commit + push + open a PR + (with your permission) merge, with an SDD-aware commit message and PR body. Critical findings outstanding will block — I'll check first." Then proceed.
 
-You are running Phase 6 of the SDD cycle for feature **$1**. Inputs: feature branch with all of `/sdd:build` + `/sdd:fix` + `/sdd:validate` complete. Outputs: a commit (locally if no remote, otherwise commit + push + PR + optional merge).
+You are running Phase 6 of the SDD cycle for feature **$1**. Inputs: feature branch with all of `/spec-tests-first:build` + `/spec-tests-first:fix` + `/spec-tests-first:validate` complete. Outputs: a commit (locally if no remote, otherwise commit + push + PR + optional merge).
 
 ## Iron Law
 
-> **Ship blocks on outstanding Critical findings. No exceptions, no auto-bypass — if any Critical finding in the latest review report has `Status: pending` or `Status: deferred`, the user must address them (via `/sdd:fix` or explicit override there with justification) before ship proceeds.**
+> **Ship blocks on outstanding Critical findings. No exceptions, no auto-bypass — if any Critical finding in the latest review report has `Status: pending` or `Status: deferred`, the user must address them (via `/spec-tests-first:fix` or explicit override there with justification) before ship proceeds.**
 
 This is the last gate before code goes anywhere outside the developer's machine. The Critical gate exists because a Critical finding in production code is materially worse than one in a feature branch.
 
@@ -21,18 +21,18 @@ This is the last gate before code goes anywhere outside the developer's machine.
 
 1. **All ACs pass.** Read `docs/specs/$1/spec-status.md`. Every AC must show `pass`. If any is `fail` / `blocked` / `stale` / `in-progress`, stop:
 
-   > Build is not complete for `$1`. Run `/sdd:build $1` (and `/sdd:validate $1`) first.
+   > Build is not complete for `$1`. Run `/spec-tests-first:build $1` (and `/spec-tests-first:validate $1`) first.
 
 2. **No outstanding Critical findings.** Read the report path from `spec-status.md`'s `Latest review:` line. Open the report and grep for finding rows whose header contains `[Critical]`. For each Critical, find the `Status:` line. If ANY Critical has `Status: pending` or `Status: deferred`, stop:
 
    > Critical findings unresolved in the latest review:
    >   - <id> [Critical] <file:line> — status: <pending|deferred>
    >
-   > Address them in `/sdd:fix $1` (or override with explicit justification there) before shipping.
+   > Address them in `/spec-tests-first:fix $1` (or override with explicit justification there) before shipping.
 
    Findings with `Status: fixed` or `Status: skipped` (with justification recorded) pass this gate.
 
-3. **Validation block exists.** `spec-status.md` should have a `## Validation` block (written by `/sdd:validate`) with no failed VS-N steps. If absent or any VS-N failed, stop and tell the user to run `/sdd:validate $1`.
+3. **Validation block exists.** `spec-status.md` should have a `## Validation` block (written by `/spec-tests-first:validate`) with no failed VS-N steps. If absent or any VS-N failed, stop and tell the user to run `/spec-tests-first:validate $1`.
 
 4. **Pending changes exist?** Run:
 
@@ -58,7 +58,7 @@ This is the last gate before code goes anywhere outside the developer's machine.
 
 ## Phase 6 status update
 
-**After all Pre-checks above pass and before Step 1**, Edit `docs/specs/$1/spec-status.md`'s Phase 6 row: Status = `in-progress`, Updated = today, Notes = `"shipping"`. This lets `/sdd:status` show the in-flight state if the ship flow pauses for user input.
+**After all Pre-checks above pass and before Step 1**, Edit `docs/specs/$1/spec-status.md`'s Phase 6 row: Status = `in-progress`, Updated = today, Notes = `"shipping"`. This lets `/spec-tests-first:status` show the in-flight state if the ship flow pauses for user input.
 
 If any Pre-check failed and ship has already aborted, this section never runs — the Phase 6 row stays `pending` so the user knows ship hasn't started.
 
@@ -293,5 +293,5 @@ Shipped. Spec `$1` is complete.
 - **Never** push to `main` directly. Always feature branch first.
 - **Never** `--force`, `--no-verify`, or bypass git hooks unless the user has explicitly asked.
 - **Never** invoke external plugins (`commit-commands`, `code-review`, etc.) — STF v2 is self-contained.
-- **Never** fabricate a review when none has run. If `Latest review:` is `(none yet)`, stop and tell the user to run `/sdd:review $1` first.
+- **Never** fabricate a review when none has run. If `Latest review:` is `(none yet)`, stop and tell the user to run `/spec-tests-first:review $1` first.
 - **System binaries required:** `git` always; `gh` only when a remote is configured.

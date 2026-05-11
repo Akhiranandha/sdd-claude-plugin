@@ -1,13 +1,13 @@
 ---
 name: build
-description: Phase 2 of the SDD cycle. Use when the user invokes /sdd:build <feature> to implement the spec at docs/specs/<feature>/spec.md using per-AC red-green-refactor. Detects test framework + layout profile (12 built-in stack profiles plus a `custom` fallback; multi-service-aware for monorepos via per-service blocks in CLAUDE.md), scaffolds the test root (or no-op for co-located profiles), iterates ACs one-by-one writing a single failing test, watching RED via test-runner, writing minimal implementation, watching GREEN, then a regression check across the feature suite. Cap=3 attempts per AC; commits the whole feature once at the end. /sdd:tests is now a deprecation shim — this skill owns test scaffolding + writing under per-AC RGR.
+description: Phase 2 of the SDD cycle. Use when the user invokes /spec-tests-first:build <feature> to implement the spec at docs/specs/<feature>/spec.md using per-AC red-green-refactor. Detects test framework + layout profile (12 built-in stack profiles plus a `custom` fallback; multi-service-aware for monorepos via per-service blocks in CLAUDE.md), scaffolds the test root (or no-op for co-located profiles), iterates ACs one-by-one writing a single failing test, watching RED via test-runner, writing minimal implementation, watching GREEN, then a regression check across the feature suite. Cap=3 attempts per AC; commits the whole feature once at the end. /spec-tests-first:tests is now a deprecation shim — this skill owns test scaffolding + writing under per-AC RGR.
 argument-hint: <feature-name>
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion, Agent
 ---
 
-# /sdd:build — Phase 2: Per-AC Red-Green-Refactor
+# /spec-tests-first:build — Phase 2: Per-AC Red-Green-Refactor
 
-**Announce at start:** Say to the user: "I'm using /sdd:build to implement `$1` via per-AC red-green-refactor — one failing test → minimal impl → green verified → next AC, with cap=3 attempts per AC." Then proceed.
+**Announce at start:** Say to the user: "I'm using /spec-tests-first:build to implement `$1` via per-AC red-green-refactor — one failing test → minimal impl → green verified → next AC, with cap=3 attempts per AC." Then proceed.
 
 You are running Phase 2 of the SDD cycle for feature **$1**. Inputs: `docs/specs/$1/spec.md`. Outputs: working code + tests under the profile's `tests_root` + `docs/specs/$1/spec-status.md` + updated `docs/codebase-map.md` + one feature-level commit at the end.
 
@@ -21,11 +21,11 @@ This is non-negotiable. The whole point of per-AC RGR is that you can't game it 
 
 1. **Spec exists?** `docs/specs/$1/spec.md` must exist. If not, stop:
 
-   > No spec found at `docs/specs/$1/spec.md`. Run `/sdd:spec $1` first.
+   > No spec found at `docs/specs/$1/spec.md`. Run `/spec-tests-first:spec $1` first.
 
    Additionally, **the spec must be user-approved**: read `docs/specs/$1/spec-status.md` and look for a `## Phase progress` table with row `1. spec` Status = `done`. If `spec-status.md` is missing, or Phase 1 ≠ `done`, stop:
 
-   > Spec for `$1` is not yet approved. Run `/sdd:spec $1` and pick (a) Approve at the end to mark the spec phase done, then re-run `/sdd:build $1`.
+   > Spec for `$1` is not yet approved. Run `/spec-tests-first:spec $1` and pick (a) Approve at the end to mark the spec phase done, then re-run `/spec-tests-first:build $1`.
 
    This gate prevents building against a draft spec the user hasn't reviewed. Backward-compat: if `spec-status.md` exists but has no `## Phase progress` block (older v1 file), treat it as approved (the file's existence implies prior approval in v1's workflow) and proceed; Step 5c will insert the Phase progress block.
 
@@ -38,7 +38,7 @@ This is non-negotiable. The whole point of per-AC RGR is that you can't game it 
 
    On (a): `git init`, continue. On (b): warn and proceed without safety rails. On (c): stop.
 
-3. **`.gitignore` scaffolded?** If the project has no `.gitignore`, scaffold a minimal one based on the language detected from the spec's Section 5 ("Technical details") or project manifests. This is preventative — avoids artifact leaks at `/sdd:ship` time.
+3. **`.gitignore` scaffolded?** If the project has no `.gitignore`, scaffold a minimal one based on the language detected from the spec's Section 5 ("Technical details") or project manifests. This is preventative — avoids artifact leaks at `/spec-tests-first:ship` time.
 
    - **Python** → `__pycache__/`, `*.pyc`, `*.pyo`, `.pytest_cache/`, `.venv/`, `venv/`, plus any runtime data file named in the spec (e.g. `data.json`, `*.db`).
    - **Node / TypeScript** → `node_modules/`, `dist/`, `build/`, `.env`, `coverage/`.
@@ -57,8 +57,8 @@ This is non-negotiable. The whole point of per-AC RGR is that you can't game it 
 
 Read in this order:
 
-1. **`docs/specs/$1/spec.md`** — read fully. Note every `AC-ID` from Section 3 and the discriminating signal named in each error-path AC (the spec REQUIRES this; if any error-path AC lacks one, stop and tell the user to amend the spec via `/sdd:update $1`). If the spec has a `Services:` line at the top, this is a multi-service feature — also parse the per-section `(service: <name>)` tags or inline AC-level tags.
-2. **`docs/specs/$1/spec-status.md`** — if it exists, read which `AC-ID`s are already `pass` vs `stale` vs `not-started`. In an `/sdd:update` cycle, only `stale` and `not-started` ACs need iteration; `pass` ACs are already implemented and their tests remain untouched.
+1. **`docs/specs/$1/spec.md`** — read fully. Note every `AC-ID` from Section 3 and the discriminating signal named in each error-path AC (the spec REQUIRES this; if any error-path AC lacks one, stop and tell the user to amend the spec via `/spec-tests-first:update $1`). If the spec has a `Services:` line at the top, this is a multi-service feature — also parse the per-section `(service: <name>)` tags or inline AC-level tags.
+2. **`docs/specs/$1/spec-status.md`** — if it exists, read which `AC-ID`s are already `pass` vs `stale` vs `not-started`. In an `/spec-tests-first:update` cycle, only `stale` and `not-started` ACs need iteration; `pass` ACs are already implemented and their tests remain untouched.
 3. **`docs/codebase-map.md`** — the project-wide map. Find existing modules so you don't duplicate.
 
 After reading, you should be able to state in one sentence what each AC needs and where it goes. If you can't, you don't have enough context yet — read related code or ask.
@@ -114,7 +114,7 @@ Auto-detect from project manifests, prompting the user:
 - `Gemfile` with `rspec` → `bundle exec rspec`
 - `composer.json` with `phpunit` → `vendor/bin/phpunit`
 
-For monorepos (manifests in multiple subdirectories), `/sdd:spec` should have already prompted the user to configure multi-service. If they declined and chose single-service, only one manifest matters here. Otherwise iterate per service.
+For monorepos (manifests in multiple subdirectories), `/spec-tests-first:spec` should have already prompted the user to configure multi-service. If they declined and chose single-service, only one manifest matters here. Otherwise iterate per service.
 
 Confirm via AskUserQuestion:
 
@@ -267,24 +267,24 @@ Open or create `docs/specs/$1/spec-status.md`:
 
   | AC-ID | Status | Notes |
   |---|---|---|
-  | AC-1.1 | in-progress | (auto from /sdd:build) |
+  | AC-1.1 | in-progress | (auto from /spec-tests-first:build) |
   | AC-1.2 | in-progress |  |
   ...
   ```
 
-  Phase 1 should already be `done` — `/sdd:spec` set it. If you're seeing Phase 1 = `pending` or `in-progress` at this point, stop and tell the user to re-run `/sdd:spec $1` and explicitly approve.
+  Phase 1 should already be `done` — `/spec-tests-first:spec` set it. If you're seeing Phase 1 = `pending` or `in-progress` at this point, stop and tell the user to re-run `/spec-tests-first:spec $1` and explicitly approve.
 
-  The `Latest review:` line is initialized to `(none yet)` — `/sdd:review` updates it.
+  The `Latest review:` line is initialized to `(none yet)` — `/spec-tests-first:review` updates it.
 
-- **If it exists** (e.g. `/sdd:update` cycle or a partial prior build):
-  - **If the `## Phase progress` table is absent** (older v1 file, pre-v2.1): insert the full 6-row table between `Last updated:` and the per-AC `## Status per Acceptance Criterion` section. Set Phase 1 = `done`, Updated = today, Notes = `"backfilled by /sdd:build during v1→v2 migration"`. Set Phase 2 = `in-progress`, Updated = today, Notes = `"per-AC RGR started"`. Phases 3–6 = `pending`. Then proceed to the AC table.
+- **If it exists** (e.g. `/spec-tests-first:update` cycle or a partial prior build):
+  - **If the `## Phase progress` table is absent** (older v1 file, pre-v2.1): insert the full 6-row table between `Last updated:` and the per-AC `## Status per Acceptance Criterion` section. Set Phase 1 = `done`, Updated = today, Notes = `"backfilled by /spec-tests-first:build during v1→v2 migration"`. Set Phase 2 = `in-progress`, Updated = today, Notes = `"per-AC RGR started"`. Phases 3–6 = `pending`. Then proceed to the AC table.
   - **If the `## Phase progress` table is present**, set Phase 2 = `in-progress` (mutate the row's Status + Updated columns via Edit; don't rewrite the file). Set every `stale` and `not-started` AC-ID to `in-progress` in the per-AC table. Leave `pass` ACs alone. Keep Phase 3+ rows as `pending`. Keep the existing `Latest review:` line.
 
 **Phase 2 status update at the START of Step 6** (after this scaffold step, before the first AC iterates): mark Phase 2 = `in-progress` (already done above). On end-of-build success → mark Phase 2 = `done` with note `"<N> ACs pass"`. On cap-hit or hard failure → mark Phase 2 = `fail` or `blocked` with a one-line reason. See Step 7a for the end-of-build status update.
 
 ## Step 6 — Per-AC red-green-refactor loop
 
-For each AC-ID to iterate (all ACs for a new spec; only `in-progress` ACs after `/sdd:update`), in dependency order:
+For each AC-ID to iterate (all ACs for a new spec; only `in-progress` ACs after `/spec-tests-first:update`), in dependency order:
 
 ```
 RED → GREEN → REFACTOR (optional) → REGRESSION CHECK → next AC
@@ -386,7 +386,7 @@ Update every AC's status in the per-AC table to its final value (`pass` / `fail`
 **Update Phase 2 row in `## Phase progress`:**
 
 - All ACs `pass` → set Phase 2 row to `done`, Updated = today, Notes = `"<N>/<N> ACs pass"`.
-- Some ACs `fail` or `blocked` (cap-hit on at least one) → set Phase 2 row to `fail`, Updated = today, Notes = `"<P>/<N> ACs pass; <F> fail, <B> blocked"`. The downstream phases (3-6) stay `pending`; the user must re-run `/sdd:build` after fixing the issues.
+- Some ACs `fail` or `blocked` (cap-hit on at least one) → set Phase 2 row to `fail`, Updated = today, Notes = `"<P>/<N> ACs pass; <F> fail, <B> blocked"`. The downstream phases (3-6) stay `pending`; the user must re-run `/spec-tests-first:build` after fixing the issues.
 
 Use Edit with the row's `2. build |` anchor to keep the update targeted.
 
@@ -409,7 +409,7 @@ Fresh-file template:
 ```markdown
 # codebase-map
 
-Project-wide map of source files and their roles. Updated by `/sdd:build` after each spec.
+Project-wide map of source files and their roles. Updated by `/spec-tests-first:build` after each spec.
 
 | File | Role |
 |------|------|
@@ -431,7 +431,7 @@ git add -A
 git commit -m "build($1): implement spec — <N> ACs pass"
 ```
 
-Substitute `<N>` with the count of `pass` ACs. This captures the full feature implementation as a single commit on the feature branch. `/sdd:fix` will add atomic commits on top per finding fixed.
+Substitute `<N>` with the count of `pass` ACs. This captures the full feature implementation as a single commit on the feature branch. `/spec-tests-first:fix` will add atomic commits on top per finding fixed.
 
 If git is not in use (pre-check 2 (b)), skip — no commit.
 
@@ -456,7 +456,7 @@ Implementation complete for `$1`. <N> ACs pass.
   codebase-map.md: docs/codebase-map.md
   Commit: <short SHA>
 
-Next: /sdd:review $1
+Next: /spec-tests-first:review $1
 ```
 
 ## Red Flags — STOP and reset
@@ -479,9 +479,9 @@ If you catch yourself thinking any of these, STOP and re-read the relevant Step:
 |---|---|
 | "TDD slows me down" | Per-AC RGR finds bugs before commit. Faster than debugging-in-production. |
 | "I already manually verified it works" | Manual verification isn't repeatable. Tests are. |
-| "The spec is unclear, I'll just code something" | If the spec is unclear, stop. Tell the user to `/sdd:update` the AC. Don't guess. |
+| "The spec is unclear, I'll just code something" | If the spec is unclear, stop. Tell the user to `/spec-tests-first:update` the AC. Don't guess. |
 | "Cap=3 is too restrictive" | Cap=3 is your error budget. Spending more than 3 attempts means the design is wrong, not the implementation. Stop. |
-| "I'll deal with the regression later" | "Later" = a broken main once `/sdd:ship` runs. Revert this AC's diff now. |
+| "I'll deal with the regression later" | "Later" = a broken main once `/spec-tests-first:ship` runs. Revert this AC's diff now. |
 
 ## Guardrails
 
@@ -491,6 +491,6 @@ If you catch yourself thinking any of these, STOP and re-read the relevant Step:
 - **No drive-by refactoring.** Scope changes to the spec.
 - **Never** `git push`, `--force`, `--no-verify`, or `git reset --hard` in this flow (except the rollback prompt's option (b), which is explicitly user-chosen).
 - **Always** dispatch `test-runner` for RED and GREEN verification — never trust a hand-eyeballed "should fail" / "should pass".
-- **Always** atomic commit per build is ONE commit; `/sdd:fix` adds incremental commits on top.
+- **Always** atomic commit per build is ONE commit; `/spec-tests-first:fix` adds incremental commits on top.
 - **Multi-service:** resolve service per AC; use the right command + profile per service. Don't co-mingle.
-- **Co-located profiles:** test files live next to source; the test name's AC-ID embedding is how `/sdd:update` finds them later.
+- **Co-located profiles:** test files live next to source; the test name's AC-ID embedding is how `/spec-tests-first:update` finds them later.
